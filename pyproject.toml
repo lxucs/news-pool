@@ -1,0 +1,38 @@
+[project]
+name = "news-pool"
+version = "0.1.0"
+description = "news-digest agent skill and its reading viewer"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6", "pyright>=1.1.380"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+# Classify `newsdigest` as first-party for import sorting.
+src = ["news-digest/scripts"]
+extend-exclude = [
+    "tests/fixtures",
+    # Design docs quote plan code verbatim; ruff would reformat their Python blocks.
+    "docs/design",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pyright]
+pythonVersion = "3.9"
+include = ["news-digest/scripts", "tests"]
+exclude = ["tests/fixtures"]
+extraPaths = ["news-digest/scripts", "tests"]
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+pythonpath = ["news-digest/scripts"]
+testpaths = ["tests"]

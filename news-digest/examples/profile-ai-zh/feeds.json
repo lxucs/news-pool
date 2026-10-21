@@ -1,0 +1,8 @@
+[
+  {"id": "aihot", "name": "AIHOT", "url": "https://aihot.news/rss", "note": "AI 日报聚合，每天 8 点出刊"},
+  {"id": "qbitai", "name": "量子位", "url": "https://www.qbitai.com/feed"},
+  {"id": "aiera", "name": "新智元", "url": "https://www.aiera.com.cn/feed"},
+  {"id": "leiphone", "name": "雷峰网", "url": "https://www.leiphone.com/feed"},
+  {"id": "geekpark", "name": "极客公园", "url": "https://www.geekpark.net/rss"},
+  {"id": "zhidx", "name": "智东西", "url": "https://www.zhidx.com/rss"}
+]

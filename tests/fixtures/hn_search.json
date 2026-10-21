@@ -1,0 +1,147 @@
+{
+ "exhaustive": {
+  "nbHits": false,
+  "typo": true
+ },
+ "exhaustiveNbHits": false,
+ "exhaustiveTypo": true,
+ "hits": [
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "nitishr"
+    },
+    "story_text": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "ai"
+     ],
+     "value": "t9xt.com - 4 letters, a .com, short and a meme (not in [redacted]'s opinion)<p>t9xt.com for a <em>AI</em> text detector - might find cool at first but search engines heavily penalised us for it. but why? most search engines use a modified version of Damerau–Levenshtein algorithm. This is super useful for spelling errors, but also misclassifies some words that are intentionally spelt differently - penalising creativity and pushing for &quot;standardization&quot;. We faced this on day 1, and day 90. Here's what happened:\nAt first we thought it's because our domain is new, (we shifted over from slopyard.com) which had a good DR but was about to expire - we wanted a brand more meaningful. but (after buying another new domain to test our hypothesis, we became curious) what was the search engine doing? It was auto-inferring t9xt as text (as intended) but since we were t9xt and not text, we kept being skipped from search. Ok that's fine, it's just a new domain, what happened next? So search engines use a framework for &quot;entity-recognition&quot; under the hood, this takes input queries, extracts entities - matches the relevant entity from its index based on context, and redirects the search filters to return more relevant results to use (this is really useful) - but, not for us. By first auto-correct all queries &quot;t9xt&quot; as &quot;text&quot;, the entity recognition engine skipped us completely. In fact, at first - even searching by domain would return a result of there is no active website by this name (<em>AI</em>). A clear mismatch with the index.\nA second reason we hypothesised, but now rely on it's own <em>AI</em> search tool's answer -&gt; when documents were first OCRd, many OCR tools would mistake e and 9, leading to breakout pattern -&gt; prompting the t9xt to text almost always.<p>The lesson we learnt here, cool is great - but no point if you're not going to be indexed properly. Thankfully there are many other ways of correcting this, but we wanted to share this little piece as a caveat before buying a cool domain that may have unintended interpretations.<p>Taken from https://t9xt.com/writings/why-search-engines-penalised-us-for-having-a-cool-domain"
+    },
+    "title": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "Why search engines penalised us for having a cool domain name"
+    }
+   },
+   "_tags": [
+    "story",
+    "author_nitishr",
+    "story_50179018",
+    "ask_hn"
+   ],
+   "author": "nitishr",
+   "children": [
+    50179049
+   ],
+   "created_at": "2026-10-21T11:19:50Z",
+   "created_at_i": 1792581590,
+   "num_comments": 1,
+   "objectID": "50179018",
+   "points": 1,
+   "story_id": 50179018,
+   "story_text": "t9xt.com - 4 letters, a .com, short and a meme (not in [redacted]&#x27;s opinion)<p>t9xt.com for a AI text detector - might find cool at first but search engines heavily penalised us for it. but why? most search engines use a modified version of Damerau–Levenshtein algorithm. This is super useful for spelling errors, but also misclassifies some words that are intentionally spelt differently - penalising creativity and pushing for &quot;standardization&quot;. We faced this on day 1, and day 90. Here&#x27;s what happened:\nAt first we thought it&#x27;s because our domain is new, (we shifted over from slopyard.com) which had a good DR but was about to expire - we wanted a brand more meaningful. but (after buying another new domain to test our hypothesis, we became curious) what was the search engine doing? It was auto-inferring t9xt as text (as intended) but since we were t9xt and not text, we kept being skipped from search. Ok that&#x27;s fine, it&#x27;s just a new domain, what happened next? So search engines use a framework for &quot;entity-recognition&quot; under the hood, this takes input queries, extracts entities - matches the relevant entity from its index based on context, and redirects the search filters to return more relevant results to use (this is really useful) - but, not for us. By first auto-correct all queries &quot;t9xt&quot; as &quot;text&quot;, the entity recognition engine skipped us completely. In fact, at first - even searching by domain would return a result of there is no active website by this name (AI). A clear mismatch with the index.\nA second reason we hypothesised, but now rely on it&#x27;s own AI search tool&#x27;s answer -&gt; when documents were first OCRd, many OCR tools would mistake e and 9, leading to breakout pattern -&gt; prompting the t9xt to text almost always.<p>The lesson we learnt here, cool is great - but no point if you&#x27;re not going to be indexed properly. Thankfully there are many other ways of correcting this, but we wanted to share this little piece as a caveat before buying a cool domain that may have unintended interpretations.<p>Taken from https:&#x2F;&#x2F;t9xt.com&#x2F;writings&#x2F;why-search-engines-penalised-us-for-having-a-cool-domain",
+   "title": "Why search engines penalised us for having a cool domain name",
+   "updated_at": "2026-10-21T11:24:02Z"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "matesz"
+    },
+    "title": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "ai"
+     ],
+     "value": "Protecting Cockroach Labs' Source Code in the Age of <em>AI</em>"
+    },
+    "url": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "https://www.cockroachlabs.com/blog/source-code-protection/"
+    }
+   },
+   "_tags": [
+    "story",
+    "author_matesz",
+    "story_50178883"
+   ],
+   "author": "matesz",
+   "created_at": "2026-10-21T11:03:35Z",
+   "created_at_i": 1792580615,
+   "num_comments": 0,
+   "objectID": "50178883",
+   "points": 1,
+   "story_id": 50178883,
+   "title": "Protecting Cockroach Labs' Source Code in the Age of AI",
+   "updated_at": "2026-10-21T11:07:03Z",
+   "url": "https://www.cockroachlabs.com/blog/source-code-protection/"
+  },
+  {
+   "_highlightResult": {
+    "author": {
+     "matchLevel": "none",
+     "matchedWords": [],
+     "value": "snikolaev"
+    },
+    "title": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "ai"
+     ],
+     "value": "What's left for us after <em>AI</em>? China's thinkers have different answers"
+    },
+    "url": {
+     "fullyHighlighted": false,
+     "matchLevel": "full",
+     "matchedWords": [
+      "ai"
+     ],
+     "value": "https://arnaudbertrand.substack.com/p/whats-left-for-us-after-<em>ai</em>-chinas"
+    }
+   },
+   "_tags": [
+    "story",
+    "author_snikolaev",
+    "story_50178773"
+   ],
+   "author": "snikolaev",
+   "created_at": "2026-10-21T10:49:39Z",
+   "created_at_i": 1792579779,
+   "num_comments": 0,
+   "objectID": "50178773",
+   "points": 4,
+   "story_id": 50178773,
+   "title": "What's left for us after AI? China's thinkers have different answers",
+   "updated_at": "2026-10-21T11:10:03Z",
+   "url": "https://arnaudbertrand.substack.com/p/whats-left-for-us-after-ai-chinas"
+  }
+ ],
+ "hitsPerPage": 5,
+ "nbHits": 827289,
+ "nbPages": 200,
+ "page": 0,
+ "params": "query=AI&tags=story&hitsPerPage=5&advancedSyntax=true&analyticsTags=backend",
+ "processingTimeMS": 4,
+ "processingTimingsMS": {
+  "_request": {
+   "queue": 1,
+   "roundTrip": 25
+  },
+  "fetch": {
+   "scanning": 3,
+   "total": 4
+  },
+  "total": 4
+ },
+ "query": "AI",
+ "serverTimeMS": 6
+}

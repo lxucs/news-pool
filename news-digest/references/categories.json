@@ -1,0 +1,15 @@
+[
+  {"name": "AI", "covers": "大模型、AI 产品与研究、算力", "typical_tags": ["LLM", "Agent", "多模态", "GPU", "融资"]},
+  {"name": "半导体", "covers": "芯片设计/制造/设备、出口管制", "typical_tags": ["先进制程", "EDA", "光刻", "存储"]},
+  {"name": "互联网", "covers": "平台公司、社交/电商/游戏、SaaS", "typical_tags": ["监管", "财报", "产品发布"]},
+  {"name": "宏观经济", "covers": "宏观数据、货币财政、就业通胀", "typical_tags": ["GDP", "降息", "CPI", "汇率"]},
+  {"name": "资本市场", "covers": "股市债市、IPO、并购、加密货币", "typical_tags": ["A股", "美股", "一级市场"]},
+  {"name": "政策监管", "covers": "法律法规、行业监管、反垄断", "typical_tags": ["立法", "罚款", "合规"]},
+  {"name": "国际关系", "covers": "地缘、外交、贸易摩擦、冲突", "typical_tags": ["制裁", "峰会", "关税"]},
+  {"name": "能源", "covers": "油气、电力、新能源、矿产", "typical_tags": ["锂电", "光伏", "核电"]},
+  {"name": "医疗健康", "covers": "医药、器械、公共卫生、生物科技", "typical_tags": ["新药审批", "临床", "医保"]},
+  {"name": "科学探索", "covers": "基础科研、航天、气候", "typical_tags": ["论文", "发射", "发现"]},
+  {"name": "文化娱乐", "covers": "影视音乐、出版、游戏文化", "typical_tags": ["票房", "IP", "版权"]},
+  {"name": "体育", "covers": "赛事、俱乐部、运动员", "typical_tags": ["转会", "赛果"]},
+  {"name": "其他", "covers": "确实归不进上面任何一类的", "typical_tags": []}
+]

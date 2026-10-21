@@ -1,0 +1,189 @@
+"""URL, time and text normalization — the only copy of these rules."""
+
+from __future__ import annotations
+
+import hashlib
+import html
+import re
+from datetime import datetime, timedelta, timezone, tzinfo
+from email.utils import parsedate_to_datetime
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+ID_HEX_CHARS = 12  # schema: item id = first 12 hex of sha1(canonical URL)
+
+TRACKING_PARAMS = frozenset(
+    {
+        "fbclid",
+        "gclid",
+        "gbraid",
+        "wbraid",
+        "msclkid",
+        "igshid",
+        "spm",
+        "from",
+        "ref",
+        "ref_src",
+        "referrer",
+        "share_token",
+        "mc_cid",
+        "mc_eid",
+        "_hsenc",
+        "vero_id",
+        "s_cid",
+    }
+)
+
+TIME_FORMATS = (
+    "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%d %H:%M:%S%z",
+    "%Y-%m-%d %H:%M:%S %z",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M",
+    "%Y/%m/%d %H:%M:%S",
+    "%Y/%m/%d %H:%M",
+    "%Y/%m/%d",
+    "%b %d, %Y",
+    "%d %B %Y",
+)
+
+_TZ_RE = re.compile(r"([+-])(\d{1,2})(?::?(\d{2}))?")
+_EPOCH_RE = re.compile(r"\d{9,14}(?:\.\d+)?")
+_MS_THRESHOLD = 1e11  # larger epoch values are milliseconds
+_TAG_RE = re.compile(r"<[^>]+>")
+_SPACE_RE = re.compile(r"\s+")
+_PUNCT_RE = re.compile(
+    "[\\s　!-/:-@\\[-`{-~、。，．！？；：\"'\\u201c\\u201d\\u2018\\u2019"
+    "（）《》〈〉【】〔〕…—～·_|-]+"
+)
+_CJK_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
+_LATIN_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9.+-]*")
+_FRACTION_RE = re.compile(r"(?<=\d:\d\d)\.(\d+)")
+ISO_FRACTION_DIGITS = 6  # Python 3.9 fromisoformat accepts exactly 3 or 6
+
+
+def parse_tz(text: str) -> timezone:
+    s = (text or "").strip()
+    if s.upper() in {"UTC", "Z", "GMT"}:
+        return timezone.utc
+    m = _TZ_RE.fullmatch(s)
+    if not m:
+        raise ValueError(f"cannot parse timezone {text!r}; use an offset like +08:00")
+    hours, minutes = int(m.group(2)), int(m.group(3) or 0)
+    if hours > 14 or minutes > 59:
+        raise ValueError(f"timezone offset out of range: {text!r}")
+    sign = 1 if m.group(1) == "+" else -1
+    return timezone(sign * timedelta(hours=hours, minutes=minutes))
+
+
+def parse_time(value: object, default_tz: tzinfo) -> datetime | None:
+    """Parse epoch seconds/ms, ISO 8601, RFC 2822 and a few common layouts. Naive → default_tz."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return _from_epoch(float(value), default_tz)
+    if not isinstance(value, str):
+        return None
+    s = value.strip()
+    if not s:
+        return None
+    if _EPOCH_RE.fullmatch(s):
+        return _from_epoch(float(s), default_tz)
+    if s[-1] in "Zz":
+        s = s[:-1] + "+00:00"
+    parsed = _try_iso(s) or _try_rfc2822(s) or _try_formats(s)
+    if parsed is None:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=default_tz)
+
+
+def from_iso(text: str) -> datetime:
+    """Read back an ISO timestamp this package wrote (always with an offset)."""
+    return datetime.fromisoformat(text)
+
+
+def _from_epoch(n: float, tz: tzinfo) -> datetime | None:
+    if n > _MS_THRESHOLD:
+        n /= 1000.0
+    if n <= 0:
+        return None
+    try:
+        return datetime.fromtimestamp(n, tz=tz)
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _try_iso(s: str) -> datetime | None:
+    s = _FRACTION_RE.sub(
+        lambda m: "." + m.group(1)[:ISO_FRACTION_DIGITS].ljust(ISO_FRACTION_DIGITS, "0"), s
+    )
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+def _try_rfc2822(s: str) -> datetime | None:
+    try:
+        return parsedate_to_datetime(s)
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
+def _try_formats(s: str) -> datetime | None:
+    for fmt in TIME_FORMATS:
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def canonicalize_url(url: str) -> str:
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    if "://" not in raw:
+        raw = "https://" + raw
+    try:
+        parts = urlsplit(raw)
+    except ValueError:
+        return raw
+    netloc = parts.netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    path = parts.path or "/"
+    if len(path) > 1 and path.endswith("/"):
+        path = path.rstrip("/") or "/"
+    query = sorted(
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=False)
+        if k.lower() not in TRACKING_PARAMS and not k.lower().startswith("utm_")
+    )
+    return urlunsplit(("https", netloc, path, urlencode(query), ""))
+
+
+def url_id(canonical: str) -> str:
+    return hashlib.sha1(canonical.encode("utf-8")).hexdigest()[:ID_HEX_CHARS]
+
+
+def domain_of(url: str) -> str:
+    try:
+        host = urlsplit(url.strip()).hostname or ""
+    except ValueError:
+        return ""
+    host = host.lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def normalize_title(title: str) -> str:
+    return _PUNCT_RE.sub("", title or "").lower()
+
+
+def detect_lang(text: str) -> str:
+    cjk = len(_CJK_RE.findall(text or ""))
+    words = len(_LATIN_WORD_RE.findall(text or ""))
+    return "zh" if cjk >= 2 and cjk >= words else "en"
+
+
+def strip_html(text: str) -> str:
+    return _SPACE_RE.sub(" ", html.unescape(_TAG_RE.sub(" ", text or ""))).strip()
