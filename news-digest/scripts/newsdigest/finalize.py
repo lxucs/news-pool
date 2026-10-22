@@ -89,6 +89,7 @@ def build_item(
         "title_zh": enr["title_zh"] or rec["title"],
         "language": rec["lang"],
         "summary": enr["summary"],
+        "synopsis": enr["synopsis"],
         "key_points": enr["key_points"],
         "why_it_matters": enr["why_it_matters"],
         "category": event["category"],

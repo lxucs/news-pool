@@ -55,8 +55,13 @@ _PUNCT_RE = re.compile(
     "[\\s　!-/:-@\\[-`{-~、。，．！？；：\"'\\u201c\\u201d\\u2018\\u2019"
     "（）《》〈〉【】〔〕…—～·_|-]+"
 )
-_CJK_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
+_CJK_RANGE = "㐀-䶿一-鿿豈-﫿"  # the CJK ranges treated as text (detect_lang, slugs, tokens)
+_CJK_RE = re.compile(f"[{_CJK_RANGE}]")
 _LATIN_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9.+-]*")
+# A slug keeps CJK + ASCII alphanumerics; anything else separates. Tokens for title
+# dedup: latin/digit words and single CJK chars (digits alone, so 提升2倍 ≠ 提升3倍).
+_SLUG_SEPARATE_RE = re.compile(f"[^0-9A-Za-z{_CJK_RANGE}]+")
+_TITLE_TOKEN_RE = re.compile(rf"[A-Za-z][A-Za-z0-9.+-]*|[0-9]+|[{_CJK_RANGE}]")
 _FRACTION_RE = re.compile(r"(?<=\d:\d\d)\.(\d+)")
 ISO_FRACTION_DIGITS = 6  # Python 3.9 fromisoformat accepts exactly 3 or 6
 
@@ -177,6 +182,27 @@ def domain_of(url: str) -> str:
 
 def normalize_title(title: str) -> str:
     return _PUNCT_RE.sub("", title or "").lower()
+
+
+def slugify_title(title: str, max_chars: int) -> str:
+    """A filename-safe, lowercase, dash-separated slug (schema.md: item file naming)."""
+    slug = _SLUG_SEPARATE_RE.sub("-", (title or "").lower()).strip("-")
+    if len(slug) > max_chars:
+        slug = slug[:max_chars].rstrip("-")
+    return slug or "untitled"
+
+
+def title_tokens(title: str) -> tuple[str, ...]:
+    """Dedup keys for a title: latin/digit words and single CJK chars, after normalize_title."""
+    return tuple(_TITLE_TOKEN_RE.findall(normalize_title(title)))
+
+
+def contains_run(inner: tuple[str, ...], outer: tuple[str, ...]) -> bool:
+    """True when `inner` appears in `outer` as consecutive tokens, not scattered."""
+    if not inner or len(inner) > len(outer):
+        return False
+    # Pad with spaces so a match can only start and end at token boundaries.
+    return f" {' '.join(inner)} " in f" {' '.join(outer)} "
 
 
 def detect_lang(text: str) -> str:

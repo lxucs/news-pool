@@ -34,6 +34,7 @@ REGIONS = ("CN", "US", "EU", "JP", "GLOBAL")
 FLAG_KEYS = ("is_breaking", "is_opinion", "needs_review")
 ENTITY_KEYS = ("companies", "people", "products")
 SUMMARY_MAX_CHARS = 60
+SYNOPSIS_MAX_CHARS = 250
 KEY_POINTS = 3
 MAX_TAGS = 10
 
@@ -316,6 +317,9 @@ def _check_enriched_row(
     summary: Any = obj.get("summary")
     if not _nonempty_str(summary):
         bad("summary", "must be a non-empty string")
+    synopsis: Any = obj.get("synopsis")
+    if not _nonempty_str(synopsis):
+        bad("synopsis", "must be a non-empty string")
     key_points: Any = obj.get("key_points")
     if (
         not isinstance(key_points, list)
@@ -353,6 +357,10 @@ def _check_enriched_row(
     where = f"{fname}:{lineno} {rid}"
     if len(summary) > SUMMARY_MAX_CHARS:
         warnings.append(f"{where}: summary is {len(summary)} chars (aim for ≤ {SUMMARY_MAX_CHARS})")
+    if len(synopsis) > SYNOPSIS_MAX_CHARS:
+        warnings.append(
+            f"{where}: synopsis is {len(synopsis)} chars (aim for ≤ {SYNOPSIS_MAX_CHARS})"
+        )
     if len(key_points) != KEY_POINTS:
         warnings.append(f"{where}: key_points has {len(key_points)} entries (aim for {KEY_POINTS})")
     if len(tags) > MAX_TAGS:
@@ -360,6 +368,7 @@ def _check_enriched_row(
     return {
         "title_zh": title_zh.strip(),
         "summary": summary.strip(),
+        "synopsis": synopsis.strip(),
         "key_points": [k.strip() for k in key_points],
         "why_it_matters": why.strip(),
         "tags": [t.strip() for t in tags],

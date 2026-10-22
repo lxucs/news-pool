@@ -15,6 +15,7 @@ from .fetch import CANDIDATES_DIR, LINKS_SOURCE, MANUAL_SOURCE
 from .files import load_agent_jsonl, read_jsonl_loose, write_json_atomic
 from .normalize import (
     canonicalize_url,
+    contains_run,
     detect_lang,
     domain_of,
     from_iso,
@@ -22,6 +23,7 @@ from .normalize import (
     parse_time,
     parse_tz,
     strip_html,
+    title_tokens,
     url_id,
 )
 from .pool import (
@@ -115,6 +117,19 @@ def resolve_tier(domain: str, source_name: str, tiers: dict[str, Any]) -> int:
     return int(tiers["default"])
 
 
+def _title_duplicate(
+    tokens: tuple[str, ...], kept_runs: list[tuple[str, ...]], min_tokens: int
+) -> bool:
+    """Same-story headlines: one title's token run contains the other's (a headline
+    plus a qualifier). Single-token differences (M5 vs M6) break the run and stay separate."""
+    if len(tokens) < min_tokens:
+        return False
+    return any(
+        len(run) >= min_tokens and (contains_run(run, tokens) or contains_run(tokens, run))
+        for run in kept_runs
+    )
+
+
 def cmd_prepare(args: argparse.Namespace) -> int:
     run_dir, run = open_run(args.run)
     require_open(run)
@@ -155,17 +170,27 @@ def cmd_prepare(args: argparse.Namespace) -> int:
     # Most authoritative, then earliest, copy first, so dedup keeps that one.
     valid.sort(key=lambda r: (r["tier"], r["published_at"]))
     seen = seen_ids(pool_of(run_dir), run["kind"])
+    # The .get shim: a run.json snapshot from before 2.1 lacks the key; 4 is the built-in default.
+    min_dup_tokens = int(settings.get("title_dup_min_tokens", 4))
     fresh: list[dict[str, Any]] = []
     ids: set[str] = set()
     titles: set[str] = set()
+    kept_runs: list[tuple[str, ...]] = []
     for rec in valid:
         title_key = normalize_title(rec["title"])
-        if rec["id"] in ids or (title_key and title_key in titles):
+        tokens = title_tokens(rec["title"])
+        if (
+            rec["id"] in ids
+            or (title_key and title_key in titles)
+            or _title_duplicate(tokens, kept_runs, min_dup_tokens)
+        ):
             stats["duplicate"] += 1
             continue
         ids.add(rec["id"])
         if title_key:
             titles.add(title_key)
+        if tokens:
+            kept_runs.append(tokens)
         if rec["id"] in seen:
             stats["already_seen"] += 1
             continue

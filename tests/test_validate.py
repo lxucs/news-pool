@@ -143,6 +143,24 @@ def test_valid_enriched_normalizes_defaults(run_dir: Path) -> None:
     row = enriched.rows[id_for(run_dir, "bloomberg.com")]
     assert row["tags"] == [] and row["why_it_matters"] == "" and row["confidence"] == 0.0
     assert row["entities"] == {"companies": [], "people": [], "products": []}
+    assert row["synopsis"].startswith("英伟达")
+
+
+def test_missing_synopsis_is_a_problem(run_dir: Path) -> None:
+    rows = sample_enriched(run_dir)
+    del rows[0]["synopsis"]
+    write_enriched(run_dir, rows)
+    _, problems = _enriched(run_dir)
+    assert [p.field for p in problems] == ["synopsis"]
+
+
+def test_overlong_synopsis_only_warns(run_dir: Path) -> None:
+    rows = sample_enriched(run_dir)
+    rows[0]["synopsis"] = "长" * 251
+    write_enriched(run_dir, rows)
+    enriched, problems = _enriched(run_dir)
+    assert problems == []
+    assert any("synopsis is 251 chars" in w for w in enriched.warnings)
 
 
 def test_english_item_needs_title_zh_and_every_primary_needs_a_line(run_dir: Path) -> None:

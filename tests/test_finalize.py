@@ -36,6 +36,12 @@ def _items_dir(run_dir: Path) -> Path:
     return run_dir.parent.parent / "items"
 
 
+def _item_file(run_dir: Path, rid: str) -> Path:
+    matches = list(_items_dir(run_dir).rglob(f"*.{rid}.json"))
+    assert len(matches) == 1
+    return matches[0]
+
+
 def test_finalize_writes_items_manifest_seen(
     run_dir: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -43,18 +49,25 @@ def test_finalize_writes_items_manifest_seen(
     reuters, verge = id_for(run_dir, "reuters.com"), id_for(run_dir, "theverge.com")
     techcrunch, bloomberg = id_for(run_dir, "techcrunch.com"), id_for(run_dir, "bloomberg.com")
     sports = id_for(run_dir, "sports.example.com")
-    assert sorted(p.stem for p in _items_dir(run_dir).iterdir()) == sorted(
-        [reuters, techcrunch, bloomberg]
+    files = sorted(p.name for p in _items_dir(run_dir).rglob("*.json"))
+    assert files == sorted(
+        [
+            f"261020.anthropic-以-2000-亿美元估值融资-50-亿美元.{techcrunch}.json",
+            f"261020.英伟达发布新一代数据中心-gpu-功耗降低-30.{bloomberg}.json",
+            f"261020.openai-发布新一代推理模型-api-价格下调-60.{reuters}.json",
+        ]
     )
+    assert {p.parent.name for p in _items_dir(run_dir).rglob("*.json")} == {"261021"}
 
-    item = read_json_file(_items_dir(run_dir) / f"{reuters}.json")
-    assert item["schema_version"] == "2.0" and item["run_kind"] == "daily"
+    item = read_json_file(_item_file(run_dir, reuters))
+    assert item["schema_version"] == "2.1" and item["run_kind"] == "daily"
     assert item["title_zh"] == item["title"]  # Chinese original: title_zh falls back to it
     assert [r["id"] for r in item["related"]] == [verge]
     assert item["related"][0]["title"].startswith("OpenAI 新一代推理模型发布")
     assert item["source"]["tier"] == 1 and item["metrics"]["importance"] == 0.8
     assert item["collected_at"] == read_json_file(run_dir / "run.json")["created_at"]
-    tc = read_json_file(_items_dir(run_dir) / f"{techcrunch}.json")
+    assert item["synopsis"].startswith("OpenAI 发布新一代推理模型")
+    tc = read_json_file(_item_file(run_dir, techcrunch))
     assert tc["title_zh"].startswith("Anthropic") and tc["language"] == "en"
 
     manifest = read_json_file(run_dir / "manifest.json")
@@ -63,6 +76,9 @@ def test_finalize_writes_items_manifest_seen(
         (techcrunch, 2),
         (bloomberg, 3),
     ]
+    assert manifest["items"][0]["file"] == (
+        f"261021/261020.openai-发布新一代推理模型-api-价格下调-60.{reuters}.json"
+    )
     assert manifest["stats"]["events"] == 3 and manifest["stats"]["new"] == 5
     seen = (run_dir / "seen.txt").read_text(encoding="utf-8").splitlines()
     assert sorted(seen) == sorted(
@@ -88,7 +104,7 @@ def test_events_below_threshold_are_not_written_but_are_seen(
     ready(run_dir, triage)
     assert cli.main(["finalize", "--run", str(run_dir)]) == 0
     bloomberg = id_for(run_dir, "bloomberg.com")
-    assert not (_items_dir(run_dir) / f"{bloomberg}.json").exists()
+    assert not list(_items_dir(run_dir).rglob(f"*.{bloomberg}.json"))
     assert f"{bloomberg} dropped" in (run_dir / "seen.txt").read_text(encoding="utf-8")
 
 
@@ -99,7 +115,7 @@ def test_adhoc_run_marks_only_kept_items_seen(
     assert cli.main(["finalize", "--run", str(run_dir)]) == 0
     lines = (run_dir / "seen.txt").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 4 and all(line.endswith(" kept") for line in lines)
-    item = read_json_file(_items_dir(run_dir) / f"{id_for(run_dir, 'reuters.com')}.json")
+    item = read_json_file(_item_file(run_dir, id_for(run_dir, "reuters.com")))
     assert item["run_kind"] == "adhoc"
 
 
@@ -108,7 +124,7 @@ def test_validation_failure_writes_nothing(run_dir: Path) -> None:
     del rows[1]["title_zh"]
     write_enriched(run_dir, rows)
     assert cli.main(["finalize", "--run", str(run_dir)]) == 3
-    assert not _items_dir(run_dir).exists() or not any(_items_dir(run_dir).iterdir())
+    assert not _items_dir(run_dir).exists() or not any(_items_dir(run_dir).rglob("*.json"))
     assert not (run_dir / "manifest.json").exists()
     assert read_json_file(run_dir / "run.json")["status"] == "started"
 
@@ -120,7 +136,7 @@ def test_resolved_lead_url_replaces_the_source_url(run_dir: Path) -> None:
         {reuters: {"lead": "", "resolved_url": "https://real.example.com/a"}},
     )
     assert cli.main(["finalize", "--run", str(run_dir)]) == 0
-    source = read_json_file(_items_dir(run_dir) / f"{reuters}.json")["source"]
+    source = read_json_file(_item_file(run_dir, reuters))["source"]
     assert source["url"] == "https://real.example.com/a" and source["domain"] == "real.example.com"
 
 
@@ -148,10 +164,14 @@ def test_refuses_to_overwrite_an_item_of_another_finalized_run(
 ) -> None:
     pool_root = run_dir.parent.parent
     write_run(pool_root, "20200101-000000")
-    items = pool_root / "items"
-    items.mkdir(exist_ok=True)
     reuters = id_for(run_dir, "reuters.com")
-    (items / f"{reuters}.json").write_text('{"run_id": "20200101-000000"}', encoding="utf-8")
+    existing = (
+        pool_root
+        / "items"
+        / (f"261021/261020.openai-发布新一代推理模型-api-价格下调-60.{reuters}.json")
+    )
+    existing.parent.mkdir(parents=True)
+    existing.write_text('{"run_id": "20200101-000000"}', encoding="utf-8")
     assert cli.main(["finalize", "--run", str(run_dir)]) == 5
     assert "refusing to overwrite" in capsys.readouterr().err
 

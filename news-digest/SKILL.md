@@ -70,11 +70,12 @@ status → start → fetch → prepare → 你写 triage.json → check → lead
 `enrich_input.json` 的每一项是一个保留事件的 primary：`title`、`text`（摘要素材）、`related_titles`（同一事件其他报道的标题）、`title_zh_required`。一行写一个 JSON：
 
 ```json
-{"id": "id1", "title_zh": "中文标题", "summary": "一句话说清发生了什么", "key_points": ["要点1", "要点2", "要点3"], "why_it_matters": "为什么值得看", "tags": ["大模型", "MoE"], "region": "US", "entities": {"companies": ["OpenAI"], "people": [], "products": []}, "confidence": 0.9}
+{"id": "id1", "title_zh": "中文标题", "summary": "一句话说清发生了什么", "synopsis": "一段话展开：发生了什么、关键数字、目前进展或后续", "key_points": ["要点1", "要点2", "要点3"], "why_it_matters": "为什么值得看", "tags": ["大模型", "MoE"], "region": "US", "entities": {"companies": ["OpenAI"], "people": [], "products": []}, "confidence": 0.9}
 ```
 
-- 必填：`id`、`summary`、`key_points`。`title_zh_required` 为 true（原文不是中文）时还必须写 `title_zh`：译成通顺的中文，专有名词保留原文。中文原文不用写 `title_zh`。
+- 必填：`id`、`summary`、`synopsis`、`key_points`。`title_zh_required` 为 true（原文不是中文）时还必须写 `title_zh`：译成通顺的中文，专有名词保留原文。中文原文不用写 `title_zh`。
 - `summary` 一句话，≤ 60 字；`key_points` 3 条，每条 ≤ 30 字，只写事实和数字。素材里没有的事实不要编。
+- `synopsis` 一段话展开细节（发生了什么、关键数字、现状或后续），软目标 ≤ 250 字，同样不编造。
 - `tags` 优先从 `references/tags.txt` 里选，规则见 `references/tag_vocabulary.md`；公司、人物、产品放进 `entities`，不进 tags。
 - `region` 取 `CN` / `US` / `EU` / `JP` / `GLOBAL`，判断不了就写空字符串。
 - `confidence`（0–1）：你对这条摘要有多大把握。

@@ -1,4 +1,5 @@
-"""The pool on disk: runs and their status, per-source coverage, the seen set, the commit."""
+"""The pool on disk: runs and their status, per-source coverage, the seen set, the commit,
+and the item file naming."""
 
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from typing import Any
 from . import SCHEMA_VERSION
 from .errors import UsageError
 from .files import read_json, write_json_atomic, write_text_atomic
-from .normalize import from_iso
+from .normalize import from_iso, slugify_title
 from .selection import Source
 
 RUN_FILE = "run.json"
@@ -182,6 +183,14 @@ def new_run_id(now: datetime, runs_dir: Path) -> str:
     return candidate
 
 
+def item_relpath(item: dict[str, Any], slug_max: int) -> str:
+    """The item file's path under items/ (schema.md): <fetch day>/<publish day>.<slug>.<id>.json."""
+    fetched = from_iso(str(item["collected_at"])).strftime("%y%m%d")
+    published = from_iso(str(item["published_at"])).strftime("%y%m%d")
+    slug = slugify_title(str(item["title_zh"]), slug_max)
+    return f"{fetched}/{published}.{slug}.{item['id']}.json"
+
+
 def build_manifest(
     run: dict[str, Any], items: list[dict[str, Any]], stats: dict[str, Any], finalized_at: str
 ) -> dict[str, Any]:
@@ -215,6 +224,7 @@ def build_manifest(
         "items": [
             {
                 "id": it["id"],
+                "file": item_relpath(it, int(run["settings"].get("item_slug_max_chars", 40))),
                 "rank": rank,
                 "title_zh": it["title_zh"],
                 "summary": it["summary"],
@@ -240,10 +250,12 @@ def commit_run(
 ) -> None:
     """Items, then manifest, then seen.txt, then status: only the last step makes the run count,
     so a crash mid-commit leaves an unfinalized run that rerunning `finalize` completes."""
+    # The .get shim: a run.json snapshot from before 2.1 lacks the key; 40 is the built-in default.
+    slug_max = int(run["settings"].get("item_slug_max_chars", 40))
     for item in items:
-        _guard_overwrite(pool, item["id"], run["run_id"])
+        _guard_overwrite(pool, item_relpath(item, slug_max), run["run_id"])
     for item in items:
-        write_json_atomic(pool.items_dir / f"{item['id']}.json", item)
+        write_json_atomic(pool.items_dir / item_relpath(item, slug_max), item)
     write_json_atomic(run_dir / MANIFEST_FILE, manifest)
     write_text_atomic(run_dir / SEEN_FILE, "".join(f"{rid} {state}\n" for rid, state in seen))
     run["status"] = STATUS_FINALIZED
@@ -252,8 +264,8 @@ def commit_run(
     save_run(run_dir, run)
 
 
-def _guard_overwrite(pool: Pool, item_id: str, run_id: str) -> None:
-    path = pool.items_dir / f"{item_id}.json"
+def _guard_overwrite(pool: Pool, relpath: str, run_id: str) -> None:
+    path = pool.items_dir / relpath
     if not path.is_file():
         return
     owner = str(read_json(path).get("run_id", ""))
@@ -262,6 +274,6 @@ def _guard_overwrite(pool: Pool, item_id: str, run_id: str) -> None:
     owner_run = pool.runs_dir / owner / RUN_FILE
     if owner_run.is_file() and read_json(owner_run).get("status") == STATUS_FINALIZED:
         raise RuntimeError(
-            f"item {item_id} already belongs to finalized run {owner}; refusing to overwrite it "
+            f"item {relpath} already belongs to finalized run {owner}; refusing to overwrite it "
             "(cross-run dedup should have skipped it)"
         )

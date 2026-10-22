@@ -6,12 +6,15 @@ import pytest
 
 from newsdigest.normalize import (
     canonicalize_url,
+    contains_run,
     detect_lang,
     domain_of,
     normalize_title,
     parse_time,
     parse_tz,
+    slugify_title,
     strip_html,
+    title_tokens,
     url_id,
 )
 
@@ -112,3 +115,36 @@ def test_detect_lang_counts_cjk_against_latin_words(text: str, lang: str) -> Non
 
 def test_strip_html_removes_tags_and_unescapes() -> None:
     assert strip_html("<p>A&amp;B <b>bold</b></p>\n\n x") == "A&B bold x"
+
+
+def test_slugify_keeps_cjk_lowercases_and_dash_joins() -> None:
+    assert slugify_title("OpenAI 发布 GPT-5，性能提升 2 倍", 40) == (
+        "openai-发布-gpt-5-性能提升-2-倍"
+    )
+    assert slugify_title("  ---苹果！！发布---  ", 40) == "苹果-发布"
+    assert slugify_title("GPT-5", 40) == "gpt-5"
+
+
+def test_slugify_caps_and_trims_a_trailing_dash() -> None:
+    assert slugify_title("abc--def", 4) == "abc"
+    assert slugify_title("苹果发布m5芯片性能怪兽级续", 6) == "苹果发布m5"
+
+
+def test_slugify_falls_back_when_nothing_is_left() -> None:
+    assert slugify_title("？！……", 40) == "untitled"
+    assert slugify_title("", 40) == "untitled"
+
+
+def test_title_tokens_are_latin_words_digits_and_cjk_chars() -> None:
+    assert title_tokens("苹果发布M5芯片") == ("苹", "果", "发", "布", "m5", "芯", "片")
+    assert title_tokens("OpenAI 发布 GPT-5，性能提升 2 倍") == (
+        "openai", "发", "布", "gpt5", "性", "能", "提", "升", "2", "倍",
+    )  # fmt: skip
+
+
+def test_contains_run_requires_consecutive_tokens() -> None:
+    assert contains_run(("a", "b"), ("x", "a", "b"))
+    assert contains_run(("a", "b"), ("a", "b"))
+    assert not contains_run(("a", "b"), ("xa", "b"))  # no straddling a token boundary
+    assert not contains_run(("a", "b"), ("a", "x", "b"))  # scattered, not consecutive
+    assert not contains_run((), ("a",))

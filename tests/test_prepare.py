@@ -272,3 +272,154 @@ def test_candidates_over_the_cap_leave_a_warning(
     assert cli.main(["prepare", "--run", str(run_dir)]) == 0
     warnings = load_run(run_dir)["warnings"]
     assert len(warnings) == 1 and "3 candidates over max_candidates" in warnings[0]
+
+
+def test_qualifier_suffix_title_is_a_duplicate_within_a_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_clock(monkeypatch, SAMPLE_NOW)
+    run_dir = started_run(tmp_path / "p", "--only", "none", "--hours", "48")
+    write_candidates(
+        run_dir,
+        "manual",
+        [
+            {
+                "url": "https://blog.example.com/short",
+                "title": "英伟达发布新一代数据中心 GPU",
+                "published_at": "2026-10-20T08:00:00+08:00",
+                "source": "Some Blog",
+            },
+            {
+                "url": "https://www.reuters.com/long",
+                "title": "英伟达发布新一代数据中心 GPU，功耗降低 30%",
+                "published_at": "2026-10-20T09:00:00+08:00",
+                "source": "Reuters",
+            },
+        ],
+    )
+    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    assert cli.main(["prepare", "--run", str(run_dir)]) == 0
+    assert [r["source_name"] for r in read_json_file(run_dir / "records.json")] == ["Reuters"]
+    assert load_run(run_dir)["stats"]["duplicate"] == 1
+
+
+def test_qualifier_prefix_title_is_also_a_duplicate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_clock(monkeypatch, SAMPLE_NOW)
+    run_dir = started_run(tmp_path / "p", "--only", "none", "--hours", "48")
+    write_candidates(
+        run_dir,
+        "manual",
+        [
+            {
+                "url": "https://www.reuters.com/plain",
+                "title": "苹果发布M5芯片",
+                "published_at": "2026-10-20T08:00:00+08:00",
+                "source": "Reuters",
+            },
+            {
+                "url": "https://blog.example.com/flash",
+                "title": "快讯：苹果发布M5芯片",
+                "published_at": "2026-10-20T09:00:00+08:00",
+                "source": "Some Blog",
+            },
+        ],
+    )
+    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    assert cli.main(["prepare", "--run", str(run_dir)]) == 0
+    assert [r["source_name"] for r in read_json_file(run_dir / "records.json")] == ["Reuters"]
+    assert load_run(run_dir)["stats"]["duplicate"] == 1
+
+
+def test_single_token_differences_stay_separate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_clock(monkeypatch, SAMPLE_NOW)
+    run_dir = started_run(tmp_path / "p", "--only", "none", "--hours", "48")
+    write_candidates(
+        run_dir,
+        "manual",
+        [
+            {
+                "url": "https://a.example.com/m5",
+                "title": "苹果发布M5芯片",
+                "published_at": "2026-10-20T08:00:00+08:00",
+            },
+            {
+                "url": "https://b.example.com/m6",
+                "title": "苹果发布M6芯片",
+                "published_at": "2026-10-20T08:30:00+08:00",
+            },
+            {
+                "url": "https://c.example.com/m5pro",
+                "title": "苹果发布M5 Pro芯片",
+                "published_at": "2026-10-20T09:00:00+08:00",
+            },
+        ],
+    )
+    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    assert cli.main(["prepare", "--run", str(run_dir)]) == 0
+    titles = sorted(r["title"] for r in read_json_file(run_dir / "records.json"))
+    assert titles == ["苹果发布M5 Pro芯片", "苹果发布M5芯片", "苹果发布M6芯片"]
+    assert load_run(run_dir)["stats"]["duplicate"] == 0
+
+
+def test_short_titles_dedup_only_exactly(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    pin_clock(monkeypatch, SAMPLE_NOW)
+    run_dir = started_run(tmp_path / "p", "--only", "none", "--hours", "48")
+    write_candidates(
+        run_dir,
+        "manual",
+        [
+            {
+                "url": "https://a.example.com/1",
+                "title": "声明",
+                "published_at": "2026-10-20T08:00:00+08:00",
+            },
+            {
+                "url": "https://b.example.com/2",
+                "title": "某公司发布重要声明",
+                "published_at": "2026-10-20T09:00:00+08:00",
+            },
+            {
+                "url": "https://c.example.com/3",
+                "title": "声明",
+                "published_at": "2026-10-20T10:00:00+08:00",
+            },
+        ],
+    )
+    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    assert cli.main(["prepare", "--run", str(run_dir)]) == 0
+    titles = sorted(r["title"] for r in read_json_file(run_dir / "records.json"))
+    assert titles == ["声明", "某公司发布重要声明"]
+    assert load_run(run_dir)["stats"]["duplicate"] == 1
+
+
+def test_title_dup_min_tokens_is_tunable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    pin_clock(monkeypatch, SAMPLE_NOW)
+    run_dir = started_run(tmp_path / "p", "--only", "none", "--hours", "48")
+    write_candidates(
+        run_dir,
+        "manual",
+        [
+            {
+                "url": "https://a.example.com/1",
+                "title": "声明",
+                "published_at": "2026-10-20T08:00:00+08:00",
+            },
+            {
+                "url": "https://b.example.com/2",
+                "title": "某公司发布重要声明",
+                "published_at": "2026-10-20T09:00:00+08:00",
+            },
+        ],
+    )
+    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    run = load_run(run_dir)
+    run["settings"]["title_dup_min_tokens"] = 2
+    save_run(run_dir, run)
+    assert cli.main(["prepare", "--run", str(run_dir)]) == 0
+    # Both tier 3, so the earlier candidate (声明) survives; the longer title is the duplicate.
+    assert [r["title"] for r in read_json_file(run_dir / "records.json")] == ["声明"]
+    assert load_run(run_dir)["stats"]["duplicate"] == 1

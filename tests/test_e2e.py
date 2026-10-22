@@ -44,7 +44,7 @@ def test_daily_repeat_adhoc_daily(
 
     first = prepared_run(pool, monkeypatch)
     _finish(first, sample_triage(first), sample_enriched(first))
-    assert len(list((pool / "items").iterdir())) == 3
+    assert len(list((pool / "items").rglob("*.json"))) == 3
 
     repeat = prepared_run(pool, monkeypatch)  # same candidates: all seen
     assert load_run(repeat)["status"] == "finalized"
@@ -61,11 +61,14 @@ def test_daily_repeat_adhoc_daily(
         {
             "id": sports,
             "summary": "某足球队提前三轮夺得联赛冠军",
+            "synopsis": "某足球队提前三轮夺冠，锁定本赛季联赛冠军，剩余赛程不影响最终排名。",
             "key_points": ["提前三轮", "联赛冠军", "本赛季"],
         }
     ]
     _finish(adhoc, triage, enriched)
-    assert (pool / "items" / f"{sports}.json").is_file()
+    sports_file = pool / "items" / "261021" / f"261020.某足球队提前三轮夺得联赛冠军.{sports}.json"
+    assert sports_file.is_file()
+    assert read_json_file(sports_file)["synopsis"].startswith("某足球队")
     assert (adhoc / "seen.txt").read_text(encoding="utf-8") == f"{sports} kept\n"
 
     after = prepared_run(pool, monkeypatch)

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from helpers import write_run
+from helpers import read_json_file, write_run
 
 from newsdigest.errors import UsageError
 from newsdigest.pool import (
@@ -104,6 +104,7 @@ def _item(item_id: str, importance: float, published: datetime, category: str = 
         "category": category,
         "metrics": {"importance": importance},
         "published_at": iso(published),
+        "collected_at": iso(NOW),
         "source": {"name": "量子位", "url": f"https://a.example.com/{item_id}"},
         "related": [{"id": "x"}] if item_id == "b" else [],
         "run_id": "r9",
@@ -120,6 +121,7 @@ RUN = {
     "sources": {"qbitai": {"start": "s", "end": "e"}, "hn": {"start": "s", "end": "e"}},
     "fetch": {"qbitai": {"ok": True, "fetched": 3}},
     "warnings": ["w"],
+    "settings": {"item_slug_max_chars": 40},
 }
 
 
@@ -139,6 +141,10 @@ def test_manifest_orders_by_importance_then_newest() -> None:
         "by_category": {"半导体": 1, "AI": 2},
     }
     assert manifest["items"][1]["related_count"] == 1
+    files = {e["id"]: e["file"] for e in manifest["items"]}
+    assert files["a"] == "261021/261021.a.a.json"
+    assert files["b"] == "261021/261021.b.b.json"
+    assert files["c"] == "261021/261020.c.c.json"  # published 9h before NOW: 2026-10-20 23:00
     assert manifest["sources"]["hn"]["ok"] is False
     assert manifest["warnings"] == ["w"]
 
@@ -150,8 +156,10 @@ def test_commit_writes_everything_and_marks_finalized(tmp_path: Path) -> None:
     items = [_item("a", 0.8, NOW)]
     manifest = build_manifest(run, items, {}, iso(NOW))
     commit_run(pool, run_dir, run, items, manifest, [("a", "kept"), ("z", "dropped")])
-    assert (pool.items_dir / "a.json").is_file()
-    assert (run_dir / "manifest.json").is_file()
+    assert (pool.items_dir / "261021" / "261021.a.a.json").is_file()
+    assert read_json_file(run_dir / "manifest.json")["items"][0]["file"] == (
+        "261021/261021.a.a.json"
+    )
     assert (run_dir / "seen.txt").read_text(encoding="utf-8") == "a kept\nz dropped\n"
     saved = load_run(run_dir)
     assert saved["status"] == "finalized" and saved["stage"] == "finalized"
@@ -160,8 +168,9 @@ def test_commit_writes_everything_and_marks_finalized(tmp_path: Path) -> None:
 def test_commit_refuses_to_overwrite_another_finalized_runs_item(tmp_path: Path) -> None:
     pool = Pool(tmp_path)
     write_run(tmp_path, "r1")
-    pool.items_dir.mkdir(parents=True)
-    (pool.items_dir / "a.json").write_text('{"run_id": "r1"}', encoding="utf-8")
+    existing = pool.items_dir / "261021" / "261021.a.a.json"
+    existing.parent.mkdir(parents=True)
+    existing.write_text('{"run_id": "r1"}', encoding="utf-8")
     run_dir = write_run(tmp_path, "r9", status="started")
     run = dict(RUN, status="started")
     items = [_item("a", 0.8, NOW)]
@@ -173,10 +182,11 @@ def test_commit_refuses_to_overwrite_another_finalized_runs_item(tmp_path: Path)
 def test_commit_overwrites_orphans_from_unfinalized_runs(tmp_path: Path) -> None:
     pool = Pool(tmp_path)
     write_run(tmp_path, "r1", status="started")
-    pool.items_dir.mkdir(parents=True)
-    (pool.items_dir / "a.json").write_text('{"run_id": "r1"}', encoding="utf-8")
+    existing = pool.items_dir / "261021" / "261021.a.a.json"
+    existing.parent.mkdir(parents=True)
+    existing.write_text('{"run_id": "r1"}', encoding="utf-8")
     run_dir = write_run(tmp_path, "r9", status="started")
     run = dict(RUN, status="started")
     items = [_item("a", 0.8, NOW)]
     commit_run(pool, run_dir, run, items, build_manifest(run, items, {}, iso(NOW)), [])
-    assert '"r9"' in (pool.items_dir / "a.json").read_text(encoding="utf-8")
+    assert '"r9"' in existing.read_text(encoding="utf-8")

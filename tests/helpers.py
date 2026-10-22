@@ -150,6 +150,8 @@ def sample_enriched(run_dir: Path) -> list[dict[str, Any]]:
         {
             "id": i("reuters.com"),
             "summary": "OpenAI 发布新推理模型，API 降价六成",
+            "synopsis": "OpenAI 发布新一代推理模型，数学与代码基准较前代提升 18%，"
+            "API 输入价格降至每百万 token 0.8 美元，Tier 3 以上开发者即日可用。",
             "key_points": ["基准提升 18%", "输入价 0.8 美元/百万 token", "Tier 3 起开放"],
             "tags": ["大模型", "推理优化"],
             "region": "US",
@@ -160,6 +162,8 @@ def sample_enriched(run_dir: Path) -> list[dict[str, Any]]:
             "id": i("techcrunch.com"),
             "title_zh": "Anthropic 以 2000 亿美元估值融资 50 亿美元",
             "summary": "Anthropic 完成 50 亿美元融资，估值翻倍至 2000 亿美元",
+            "synopsis": "Anthropic 完成由主权基金领投的 50 亿美元融资，估值六个月内翻倍至 "
+            "2000 亿美元，资金将用于扩大算力与企业市场投入。",
             "key_points": ["主权基金领投", "半年估值翻倍", "金额 50 亿美元"],
             "tags": ["融资"],
             "region": "US",
@@ -168,6 +172,8 @@ def sample_enriched(run_dir: Path) -> list[dict[str, Any]]:
         {
             "id": i("bloomberg.com"),
             "summary": "英伟达发布 3nm 数据中心 GPU，功耗降三成",
+            "synopsis": "英伟达发布 3nm 数据中心 GPU，同等性能下功耗降低 30%，"
+            "计划明年一季度量产出货。",
             "key_points": ["3nm 工艺", "功耗降低 30%", "明年一季度量产"],
             "region": "US",
         },
