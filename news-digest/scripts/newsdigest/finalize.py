@@ -1,4 +1,4 @@
-"""finalize: validate everything, then commit items, manifest and seen.txt (see pool.commit_run)."""
+"""finalize：全部校验一遍，再提交条目、manifest 和 seen.txt（见 pool.commit_run）。"""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     ]
     kept_ids = {m for e in kept for m in e["members"]}
     seen = [(rid, SEEN_KEPT) for rid in ctx.input_ids if rid in kept_ids]
-    if run["kind"] == KIND_DAILY:  # adhoc runs leave what they dropped eligible for daily runs
+    if run["kind"] == KIND_DAILY:  # 临时运行丢弃的条目，之后的每日运行仍可以收录
         seen += [(rid, SEEN_DROPPED) for rid in ctx.input_ids if rid not in kept_ids]
     stats = {
         "candidates": run["stats"]["candidates"],

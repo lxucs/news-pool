@@ -103,7 +103,7 @@ def test_list_items_and_its_parameters(env: Env) -> None:
     assert call(env.app, "GET", "/api/items", view="collection")[0] == 400
     _, page = call(env.app, "GET", "/api/items", limit="1")
     assert len(page["items"]) == 1 and page["total"] == 2
-    _, page = call(env.app, "GET", "/api/items", limit="100000")  # clamped, not refused
+    _, page = call(env.app, "GET", "/api/items", limit="100000")  # 截到上限，而不是拒绝
     assert len(page["items"]) == 2
 
 

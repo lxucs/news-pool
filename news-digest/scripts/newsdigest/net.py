@@ -1,4 +1,4 @@
-"""HTTP GET with retries and charset-aware decoding — the only module that opens connections."""
+"""带重试、按字符集解码的 HTTP GET——唯一会建立网络连接的模块。"""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from typing import Any
 
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
-ALLOWED_SCHEMES = frozenset({"http", "https"})  # urlopen would also open file: and ftp: URLs
-SNIFF_BYTES = 2048  # how far into a body to look for an XML declaration or <meta charset>
+ALLOWED_SCHEMES = frozenset({"http", "https"})  # 否则 urlopen 也会打开 file: 和 ftp: 的 URL
+SNIFF_BYTES = 2048  # 在响应体开头多少字节内查找 XML 声明或 <meta charset>
 _CHARSET_ALIASES = {"gb2312": "gb18030", "gbk": "gb18030", "x-gbk": "gb18030"}
 _CT_CHARSET_RE = re.compile(r"charset=[\"']?([A-Za-z0-9_.:-]+)", re.I)
 _XML_DECL_RE = re.compile(rb"<\?xml[^>]*encoding=[\"']([A-Za-z0-9_.:-]+)[\"']", re.I)
@@ -21,7 +21,7 @@ _META_CHARSET_RE = re.compile(rb"<meta[^>]+charset=[\"']?([A-Za-z0-9_.:-]+)", re
 
 
 class FetchError(Exception):
-    """A request that failed after retries; str() is a short reason such as 'HTTP 429'."""
+    """重试后仍失败的请求；str() 是简短的原因，例如 'HTTP 429'。"""
 
 
 @dataclass(frozen=True)
@@ -57,10 +57,10 @@ def http_get(url: str, http_cfg: dict[str, Any], user_agent: str | None = None) 
             reason = f"HTTP {exc.code}"
             if exc.code not in RETRY_STATUSES:
                 break
-        except ValueError as exc:  # malformed URL: retrying cannot help
+        except ValueError as exc:  # URL 格式不对：重试也没用
             reason = f"bad URL: {exc}"
             break
-        except (OSError, http.client.HTTPException) as exc:  # URLError, timeouts, resets
+        except (OSError, http.client.HTTPException) as exc:  # URLError、超时、连接被重置
             reason = _describe(exc)
     raise FetchError(reason)
 
@@ -72,7 +72,7 @@ def _describe(exc: BaseException) -> str:
 
 
 def detect_charset(body: bytes, content_type: str) -> str:
-    """Header charset, else XML declaration, else <meta charset>, else UTF-8."""
+    """依次取响应头的 charset、XML 声明、<meta charset>，都没有就用 UTF-8。"""
     match = _CT_CHARSET_RE.search(content_type or "")
     name = match.group(1) if match else ""
     if not name:
@@ -84,7 +84,7 @@ def detect_charset(body: bytes, content_type: str) -> str:
         info = codecs.lookup(name)
     except LookupError:
         return "utf-8"
-    # base64, rot13 and friends are bytes-to-bytes codecs: lookup succeeds, decoding then fails
+    # base64、rot13 之类是字节到字节的 codec：lookup 能成功，之后解码却会失败
     if not getattr(info, "_is_text_encoding", True):
         return "utf-8"
     return name

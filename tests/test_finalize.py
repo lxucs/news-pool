@@ -61,7 +61,7 @@ def test_finalize_writes_items_manifest_seen(
 
     item = read_json_file(_item_file(run_dir, reuters))
     assert item["schema_version"] == "2.1" and item["run_kind"] == "daily"
-    assert item["title_zh"] == item["title"]  # Chinese original: title_zh falls back to it
+    assert item["title_zh"] == item["title"]  # 中文原文：title_zh 回退为原标题
     assert [r["id"] for r in item["related"]] == [verge]
     assert item["related"][0]["title"].startswith("OpenAI 新一代推理模型发布")
     assert item["source"]["tier"] == 1 and item["metrics"]["importance"] == 0.8
@@ -148,7 +148,7 @@ def test_crash_mid_commit_leaves_run_unfinalized_and_rerun_completes(
     def broken(path: Path, text: str) -> None:
         raise OSError("disk full")
 
-    monkeypatch.setattr(pool, "write_text_atomic", broken)  # seen.txt is the third write
+    monkeypatch.setattr(pool, "write_text_atomic", broken)  # seen.txt 是第三步写入
     assert cli.main(["finalize", "--run", str(run_dir)]) == 5
     assert (run_dir / "manifest.json").exists()
     assert read_json_file(run_dir / "run.json")["status"] == "started"

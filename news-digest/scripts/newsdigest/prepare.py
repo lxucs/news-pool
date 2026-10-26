@@ -1,4 +1,4 @@
-"""prepare: normalize candidates, apply each source's window, dedup in-run and against the pool."""
+"""prepare：规范化候选，按各来源的时间窗过滤，在运行内去重并对照新闻池去重。"""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ STAT_KEYS = (
     "duplicate", "already_seen", "over_cap", "new",
 )  # fmt: skip
 
-# Candidate files come from adapters, links, or an agent; accept the usual field names.
+# 候选文件可能来自 adapter、links 或 agent；常见的字段名都接受。
 URL_KEYS = ("url", "link", "source_url", "canonical_url", "href")
 TITLE_KEYS = ("title", "headline", "name", "subject")
 TIME_KEYS = (
@@ -82,7 +82,7 @@ def normalize_candidate(
     if not url or not title:
         return None, "incomplete"
     published = parse_time(_pick(raw, TIME_KEYS), tz)
-    if published is None:  # an unknown publish time is never guessed
+    if published is None:  # 发布时间未知时绝不猜测
         return None, "no_time"
     canonical = canonicalize_url(url)
     domain = domain_of(canonical)
@@ -120,8 +120,8 @@ def resolve_tier(domain: str, source_name: str, tiers: dict[str, Any]) -> int:
 def _title_duplicate(
     tokens: tuple[str, ...], kept_runs: list[tuple[str, ...]], min_tokens: int
 ) -> bool:
-    """Same-story headlines: one title's token run contains the other's (a headline
-    plus a qualifier). Single-token differences (M5 vs M6) break the run and stay separate."""
+    """同一件事的标题：一个标题的连续 token 序列包含另一个的（标题加上修饰语）。只差
+    一个 token 的（M5 与 M6）会打断连续序列，仍算作不同的标题。"""
     if len(tokens) < min_tokens:
         return False
     return any(
@@ -144,7 +144,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
     valid: list[dict[str, Any]] = []
     for path in sorted((run_dir / CANDIDATES_DIR).glob("*.jsonl")):
         source_id = path.stem
-        if source_id == MANUAL_SOURCE:  # written by the agent: a bad line is fixed, not skipped
+        if source_id == MANUAL_SOURCE:  # agent 写的文件：坏行要改好，不跳过
             rows = _read_manual(path, int(settings["output"]["max_problems"]))
         else:
             rows, unreadable = read_jsonl_loose(path)
@@ -159,7 +159,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
             if rec is None:
                 stats[reason] += 1
                 continue
-            if source_id != LINKS_SOURCE:  # links were handed over explicitly: no window
+            if source_id != LINKS_SOURCE:  # links 是明确交来的链接：不受时间窗限制
                 start, end = windows.get(source_id, overall)
                 if not start <= from_iso(rec["published_at"]) < end:
                     stats["out_of_window"] += 1
@@ -167,10 +167,10 @@ def cmd_prepare(args: argparse.Namespace) -> int:
             rec["tier"] = resolve_tier(rec["source_domain"], rec["source_name"], tiers)
             valid.append(rec)
 
-    # Most authoritative, then earliest, copy first, so dedup keeps that one.
+    # 最权威的排前面，同样权威时最早的排前面，去重时就保留这一份。
     valid.sort(key=lambda r: (r["tier"], r["published_at"]))
     seen = seen_ids(pool_of(run_dir), run["kind"])
-    # The .get shim: a run.json snapshot from before 2.1 lacks the key; 4 is the built-in default.
+    # 用 .get 兼容：2.1 之前的 run.json 快照里没有这个键；4 是内置默认值。
     min_dup_tokens = int(settings.get("title_dup_min_tokens", 4))
     fresh: list[dict[str, Any]] = []
     ids: set[str] = set()
@@ -238,7 +238,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
 
 
 def _read_manual(path: Path, max_problems: int) -> list[dict[str, Any]]:
-    """Rows of candidates/manual.jsonl; any line that is not one JSON object fails `prepare`."""
+    """candidates/manual.jsonl 的各行；只要有一行不是单个 JSON 对象，`prepare` 就失败。"""
     parsed, json_problems = load_agent_jsonl(path)
     problems = [
         f"{p.file}:{p.line}:{p.col}: invalid JSON ({p.message}): {p.text}" for p in json_problems
@@ -287,8 +287,7 @@ def _triage_input(run: dict[str, Any], fresh: list[dict[str, Any]]) -> dict[str,
 
 
 def _truncation_warnings(run: dict[str, Any]) -> list[str]:
-    """A feed exposes only its latest entries; if they don't reach back to the window start,
-    whatever was published in between is lost."""
+    """订阅源只提供最新的若干条；这些条目覆盖不到时间窗起点时，中间发布的内容就丢了。"""
     out: list[str] = []
     fetch = run.get("fetch") or {}
     for sid, info in run["sources"].items():

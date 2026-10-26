@@ -62,7 +62,7 @@ def test_non_utf8_tags_file_is_usage_error(tmp_path: Path) -> None:
 
 def test_unreadable_tags_file_is_usage_error(tmp_path: Path) -> None:
     path = tmp_path / "tags.txt"
-    path.mkdir()  # exists, but reading it raises OSError (IsADirectoryError)
+    path.mkdir()  # 存在，但读取时抛 OSError（IsADirectoryError）
     with pytest.raises(UsageError, match="cannot read"):
         load_tags(path)
 

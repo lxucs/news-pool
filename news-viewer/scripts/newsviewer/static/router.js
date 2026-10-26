@@ -1,7 +1,7 @@
-// The URL hash holds what is on screen, so any view can be bookmarked and `nv.py up --run`
-// can deep-link. Canonical form: #/v/<view>?run=&q=&category=&tag=&source=&item=, or
-// #/c/<cid>?… for a collection; #/run/<run_id> and #/item/<id> are accepted as short links.
-// No URLSearchParams: tests/viewer_js_check.js runs this module under a bare JS engine.
+// URL hash 记录屏幕上显示的内容，所以任何视图都能加书签，`nv.py up --run` 也能给出直达链接。
+// 规范形式：#/v/<view>?run=&q=&category=&tag=&source=&item=，收藏夹则是 #/c/<cid>?…；
+// 也接受 #/run/<run_id> 和 #/item/<id> 这样的短链接。
+// 不用 URLSearchParams：tests/viewer_js_check.js 在裸 JS 引擎里运行本模块。
 
 const PARAMS = ["run", "q", "category", "tag", "source", "item"];
 

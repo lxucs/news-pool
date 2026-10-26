@@ -1,4 +1,4 @@
-"""The one place that reads the wall clock, so tests can pin it."""
+"""唯一读取系统时钟的地方，方便测试把时间固定住。"""
 
 from __future__ import annotations
 

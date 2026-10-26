@@ -1,4 +1,4 @@
-"""fetch: each selected source over its own window; manual links on request."""
+"""fetch：每个选中的来源按各自的时间窗抓取；需要时再抓手动给出的链接。"""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ CANDIDATES_DIR = "candidates"
 LINKS_SOURCE = "links"
 MANUAL_SOURCE = "manual"
 
-# Endpoints and their documented maxima (protocol constants, not tunables).
+# 各接口地址及文档规定的上限（协议常量，不是可调参数）。
 GNEWS_URL = "https://news.google.com/rss/search"
 HN_URL = "https://hn.algolia.com/api/v1/search_by_date"
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
@@ -39,7 +39,7 @@ WSCN_MAX_LIMIT = 100
 HN_MAX_HITS = 1000
 GDELT_MAX_RECORDS = 250
 GDELT_MIN_MINUTES = 15
-GNEWS_WHEN = ((1, "1h"), (12, "12h"), (24, "1d"))  # longer windows use "7d", its largest
+GNEWS_WHEN = ((1, "1h"), (12, "12h"), (24, "1d"))  # 更长的时间窗用 "7d"，即它支持的最大值
 SEARCH_PARSERS = {"gnews": parse_gnews, "hn": parse_hn, "gdelt": parse_gdelt}
 
 
@@ -72,8 +72,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
         linked = _fetch_links(Path(args.links).expanduser(), cand_dir, settings, tz)
         say(f"links: {linked} candidates")
     run["fetch"] = results
-    # A source that failed on some queries but still returned rows has not failed outright; nor
-    # has a run whose links produced candidates.
+    # 某个来源部分 query 失败但仍返回了候选行，不算彻底失败；links 产出了候选的运行也不算。
     if results and not linked and not any(r["ok"] or r["fetched"] for r in results.values()):
         save_run(run_dir, run)
         raise AllSourcesFailed(

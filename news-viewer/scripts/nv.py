@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""news-viewer command line. Workflow: ../SKILL.md. Commands: `nv.py --help`."""
+"""news-viewer 命令行。工作流程见 ../SKILL.md；命令见 `nv.py --help`。"""
 
 import os
 import sys

@@ -46,12 +46,12 @@ def test_daily_repeat_adhoc_daily(
     _finish(first, sample_triage(first), sample_enriched(first))
     assert len(list((pool / "items").rglob("*.json"))) == 3
 
-    repeat = prepared_run(pool, monkeypatch)  # same candidates: all seen
+    repeat = prepared_run(pool, monkeypatch)  # 同样的候选：全部已处理过
     assert load_run(repeat)["status"] == "finalized"
     assert read_json_file(repeat / "manifest.json")["items"] == []
 
     adhoc = prepared_run(pool, monkeypatch, "--query", "足球", "--focus", "足球赛事")
-    sports = id_for(adhoc, "sports.example.com")  # dropped by the daily run, so eligible again
+    sports = id_for(adhoc, "sports.example.com")  # 每日运行 drop 了它，所以可以再次入选
     assert [i["id"] for i in read_json_file(adhoc / "triage_input.json")["items"]] == [sports]
     triage = {
         "events": [{"primary": sports, "members": [sports], "category": "体育", "importance": 0.5}],
@@ -72,7 +72,7 @@ def test_daily_repeat_adhoc_daily(
     assert (adhoc / "seen.txt").read_text(encoding="utf-8") == f"{sports} kept\n"
 
     after = prepared_run(pool, monkeypatch)
-    assert load_run(after)["status"] == "finalized"  # nothing new for the daily run either
+    assert load_run(after)["status"] == "finalized"  # 每日运行也没有新内容了
 
     capsys.readouterr()
     assert cli.main(["status", "--pool", str(pool)]) == 0

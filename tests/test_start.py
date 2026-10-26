@@ -177,5 +177,5 @@ def test_init_ends_with_a_next_line(tmp_path: Path, capsys: pytest.CaptureFixtur
     assert lines[-1].startswith("[nd] next: ask the user what to follow")
     assert "config.json" in lines[-1] and lines[-1].endswith("then start")
     assert any(line.startswith("[nd] pool: ") for line in lines[:-1])
-    assert cli.main(["init", "--pool", str(pool)]) == 0  # the profile already exists
+    assert cli.main(["init", "--pool", str(pool)]) == 0  # profile 已经存在
     assert capsys.readouterr().out.splitlines()[-1].startswith("[nd] next: ")

@@ -1,9 +1,9 @@
-"""The viewer's own data in <pool>/viewer/viewer.db: per-item state, notes, collections.
+"""阅读器自己的数据，存在 <pool>/viewer/viewer.db：每个条目的状态、笔记、收藏夹。
 
-Attached as schema `userdb` on the index's in-memory connection (index.py), so one query can
-join items with the user's marks. Keys are item ids, stable forever (schema.md). The default
-rollback journal, not WAL: the pool may sit in a synced folder, where WAL's side files misbehave,
-and there is one writer. news-digest never reads or writes this database."""
+它以 schema `userdb` 的名义 attach 到索引的内存连接上（index.py），所以一条查询就能把条目和
+用户标记 join 起来。键是条目 id，永久稳定（schema.md）。用默认的 rollback journal 而不是 WAL：
+新闻池可能放在同步文件夹里，WAL 的附属文件在那里会出问题；而且写入方只有一个。news-digest
+从不读写这个数据库。"""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from .errors import ApiError, Conflict, NotFound
 DB_FILE = "viewer.db"
 SCHEMA = "userdb"
 
-# (version, statements). Append only: a database at version N runs every later entry once.
+# (version, statements)。只能追加：版本为 N 的数据库会把之后的每一项各执行一次。
 MIGRATIONS: tuple[tuple[int, tuple[str, ...]], ...] = (
     (
         1,
@@ -47,10 +47,10 @@ _EMPTY_STATE: dict[str, Any] = {
 
 
 def connect(path: Path) -> sqlite3.Connection:
-    """An in-memory connection (the item index lives there) with viewer.db attached.
+    """一个内存连接（条目索引就在里面），并 attach 了 viewer.db。
 
-    check_same_thread=False: the server answers on several threads; index.py serializes every
-    use of the connection with one lock."""
+    check_same_thread=False：服务在多个 thread 上应答；index.py 用同一个 lock 把对这个连接的
+    每次使用串行化。"""
     conn = sqlite3.connect(":memory:", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -59,14 +59,14 @@ def connect(path: Path) -> sqlite3.Connection:
 
 
 def attach(conn: sqlite3.Connection, path: Path) -> None:
-    """Attach viewer.db (created if absent) as `userdb` and migrate it forward."""
+    """把 viewer.db（不存在就创建）attach 为 `userdb`，并把它向前迁移到最新版本。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     conn.execute(f"ATTACH DATABASE ? AS {SCHEMA}", (str(path),))
     version = int(conn.execute(f"PRAGMA {SCHEMA}.user_version").fetchone()[0])
     for target, statements in MIGRATIONS:
         if version >= target:
             continue
-        conn.execute("BEGIN")  # DDL does not open a transaction by itself
+        conn.execute("BEGIN")  # DDL 不会自己开启事务
         with conn:
             for statement in statements:
                 conn.execute(statement)
@@ -94,8 +94,8 @@ def set_flags(
     hidden: bool | None = None,
     now: str,
 ) -> dict[str, Any]:
-    """Set (True) or clear (False) flags. Setting keeps an existing timestamp, so starring twice
-    does not move an item in the starred view."""
+    """设置（True）或清除（False）标记。设置时保留已有的时间戳，所以重复星标不会改变条目在
+    星标视图里的位置。"""
     changes = {"starred_at": starred, "read_at": read, "hidden_at": hidden}
     with conn:
         conn.execute("INSERT OR IGNORE INTO userdb.item_state (id) VALUES (?)", (item_id,))
@@ -115,7 +115,7 @@ def set_flags(
 
 
 def set_note(conn: sqlite3.Connection, item_id: str, note: str, *, now: str) -> dict[str, Any]:
-    """Store the note as typed; a blank note clears it."""
+    """按输入原样保存笔记；空白的笔记等于清除。"""
     with conn:
         conn.execute("INSERT OR IGNORE INTO userdb.item_state (id) VALUES (?)", (item_id,))
         if note.strip():
@@ -132,7 +132,7 @@ def set_note(conn: sqlite3.Connection, item_id: str, note: str, *, now: str) -> 
 
 
 def mark_read(conn: sqlite3.Connection, ids: list[str], *, now: str) -> int:
-    """Stamp read_at on the unread ones among `ids`; how many changed."""
+    """给 `ids` 中未读的条目写上 read_at；返回改变了多少条。"""
     changed = 0
     with conn:
         for item_id in ids:
@@ -191,7 +191,7 @@ def update_collection(
 
 
 def delete_collection(conn: sqlite3.Connection, cid: int) -> None:
-    """The collection goes; its items stay. collection_items rows cascade (foreign keys on)."""
+    """删除收藏夹，条目保留。collection_items 里的行级联删除（外键已开启）。"""
     require_collection(conn, cid)
     with conn:
         conn.execute("DELETE FROM userdb.collections WHERE cid = ?", (cid,))

@@ -1,6 +1,6 @@
-"""Reading the pool as news-digest's schema.md promises: finalized runs, their manifests,
-the item files. The viewer never writes here; anything unreadable is skipped with a warning
-(it lands in server.log), never a crash."""
+"""按 news-digest 的 schema.md 的约定读取新闻池：已 finalize 的运行、它们的 manifest、条目文件。
+阅读器从不往这里写。读不了的内容一律跳过、绝不崩溃：不存在的文件直接跳过，损坏的文件
+记一条警告（进 server.log）。"""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from typing import Any
 
 from .console import warn
 
-ID_PATTERN = r"[0-9a-f]{12}"  # schema.md: the first 12 hex digits of sha1(canonical URL)
+ID_PATTERN = r"[0-9a-f]{12}"  # schema.md：sha1(规范化 URL) 的前 12 位十六进制
 RUN_FILE = "run.json"
 MANIFEST_FILE = "manifest.json"
 STATUS_FINALIZED = "finalized"
@@ -27,12 +27,12 @@ class Run:
     kind: str
     focus: str
     finalized_at: str
-    created_at: str  # the run's start = its items' collected_at
-    entries: list[dict[str, Any]]  # manifest items[], in rank order
+    created_at: str  # 运行的开始时间 = 其条目的 collected_at
+    entries: list[dict[str, Any]]  # manifest 的 items[]，按 rank 排序
 
 
 def run_dirs(pool: Path) -> list[Path]:
-    """Run directories, oldest first (run ids are start timestamps)."""
+    """运行目录，最早的在前（run_id 就是开始时间戳）。"""
     runs = pool / "runs"
     if not runs.is_dir():
         return []
@@ -47,7 +47,7 @@ def run_mtime(run_dir: Path) -> float | None:
 
 
 def read_finalized_run(run_dir: Path) -> Run | None:
-    """The run and its manifest entries, or None while it is not finalized (or is unreadable)."""
+    """运行及其 manifest 条目；尚未 finalize（或读不了）时返回 None。"""
     run = _read_object(run_dir / RUN_FILE)
     if run is None or run.get("status") != STATUS_FINALIZED:
         return None
@@ -71,7 +71,7 @@ def read_finalized_run(run_dir: Path) -> Run | None:
 
 
 def load_item(pool: Path, entry: dict[str, Any]) -> dict[str, Any] | None:
-    """The item file a manifest entry points at: `file` (2.1), else items/<id>.json (2.0)."""
+    """manifest 条目指向的条目文件：`file`（2.1），没有就用 items/<id>.json（2.0）。"""
     items_dir = (pool / "items").resolve()
     rel = entry.get("file")
     name = rel if isinstance(rel, str) and rel else f"{entry['id']}.json"
@@ -91,7 +91,7 @@ def load_item(pool: Path, entry: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def day_of(iso: str) -> str:
-    """%y%m%d of an ISO timestamp in its own offset (the item directory's name); '' if bad."""
+    """ISO 时间戳在它自己的时区偏移下的 %y%m%d（即条目目录名）；格式不对时返回 ''。"""
     parsed = _parse(iso)
     return parsed.strftime("%y%m%d") if parsed is not None else ""
 
@@ -103,7 +103,7 @@ def timestamp_of(iso: str) -> float:
 
 def _parse(iso: str) -> datetime | None:
     try:
-        # Python 3.9's fromisoformat does not accept a trailing Z.
+        # Python 3.9 的 fromisoformat 不接受末尾的 Z。
         return datetime.fromisoformat(iso.replace("Z", "+00:00"))
     except ValueError:
         return None

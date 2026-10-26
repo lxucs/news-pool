@@ -1,4 +1,4 @@
-"""URL, time and text normalization — the only copy of these rules."""
+"""URL、时间和文本的规范化——这些规则只在这里写一份。"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone, tzinfo
 from email.utils import parsedate_to_datetime
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-ID_HEX_CHARS = 12  # schema: item id = first 12 hex of sha1(canonical URL)
+ID_HEX_CHARS = 12  # schema：条目 id = sha1(规范化 URL) 的前 12 位十六进制
 
 TRACKING_PARAMS = frozenset(
     {
@@ -48,22 +48,22 @@ TIME_FORMATS = (
 
 _TZ_RE = re.compile(r"([+-])(\d{1,2})(?::?(\d{2}))?")
 _EPOCH_RE = re.compile(r"\d{9,14}(?:\.\d+)?")
-_MS_THRESHOLD = 1e11  # larger epoch values are milliseconds
+_MS_THRESHOLD = 1e11  # 比这个大的 epoch 值按毫秒处理
 _TAG_RE = re.compile(r"<[^>]+>")
 _SPACE_RE = re.compile(r"\s+")
 _PUNCT_RE = re.compile(
     "[\\s　!-/:-@\\[-`{-~、。，．！？；：\"'\\u201c\\u201d\\u2018\\u2019"
     "（）《》〈〉【】〔〕…—～·_|-]+"
 )
-_CJK_RANGE = "㐀-䶿一-鿿豈-﫿"  # the CJK ranges treated as text (detect_lang, slugs, tokens)
+_CJK_RANGE = "㐀-䶿一-鿿豈-﫿"  # 当作文字处理的 CJK 区段（detect_lang、slug、token）
 _CJK_RE = re.compile(f"[{_CJK_RANGE}]")
 _LATIN_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9.+-]*")
-# A slug keeps CJK + ASCII alphanumerics; anything else separates. Tokens for title
-# dedup: latin/digit words and single CJK chars (digits alone, so 提升2倍 ≠ 提升3倍).
+# slug 保留 CJK 字符和 ASCII 字母数字，其余字符都当作分隔。标题去重用的 token：拉丁字母 /
+# 数字词和单个 CJK 字符（数字单独成 token，所以 提升2倍 ≠ 提升3倍）。
 _SLUG_SEPARATE_RE = re.compile(f"[^0-9A-Za-z{_CJK_RANGE}]+")
 _TITLE_TOKEN_RE = re.compile(rf"[A-Za-z][A-Za-z0-9.+-]*|[0-9]+|[{_CJK_RANGE}]")
 _FRACTION_RE = re.compile(r"(?<=\d:\d\d)\.(\d+)")
-ISO_FRACTION_DIGITS = 6  # Python 3.9 fromisoformat accepts exactly 3 or 6
+ISO_FRACTION_DIGITS = 6  # Python 3.9 的 fromisoformat 只接受恰好 3 位或 6 位
 
 
 def parse_tz(text: str) -> timezone:
@@ -81,7 +81,7 @@ def parse_tz(text: str) -> timezone:
 
 
 def parse_time(value: object, default_tz: tzinfo) -> datetime | None:
-    """Parse epoch seconds/ms, ISO 8601, RFC 2822 and a few common layouts. Naive → default_tz."""
+    """解析 epoch 秒 / 毫秒、ISO 8601、RFC 2822 和几种常见格式。不带时区的按 default_tz。"""
     if value is None or isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
@@ -102,7 +102,7 @@ def parse_time(value: object, default_tz: tzinfo) -> datetime | None:
 
 
 def from_iso(text: str) -> datetime:
-    """Read back an ISO timestamp this package wrote (always with an offset)."""
+    """读回本包写出的 ISO 时间戳（总是带时区偏移）。"""
     return datetime.fromisoformat(text)
 
 
@@ -185,7 +185,7 @@ def normalize_title(title: str) -> str:
 
 
 def slugify_title(title: str, max_chars: int) -> str:
-    """A filename-safe, lowercase, dash-separated slug (schema.md: item file naming)."""
+    """可安全用作文件名、小写、用短横线分隔的 slug（见 schema.md 的条目文件命名）。"""
     slug = _SLUG_SEPARATE_RE.sub("-", (title or "").lower()).strip("-")
     if len(slug) > max_chars:
         slug = slug[:max_chars].rstrip("-")
@@ -193,15 +193,15 @@ def slugify_title(title: str, max_chars: int) -> str:
 
 
 def title_tokens(title: str) -> tuple[str, ...]:
-    """Dedup keys for a title: latin/digit words and single CJK chars, after normalize_title."""
+    """标题的去重键：经 normalize_title 处理后的拉丁字母 / 数字词和单个 CJK 字符。"""
     return tuple(_TITLE_TOKEN_RE.findall(normalize_title(title)))
 
 
 def contains_run(inner: tuple[str, ...], outer: tuple[str, ...]) -> bool:
-    """True when `inner` appears in `outer` as consecutive tokens, not scattered."""
+    """`inner` 作为连续的 token（而不是分散地）出现在 `outer` 里时为 True。"""
     if not inner or len(inner) > len(outer):
         return False
-    # Pad with spaces so a match can only start and end at token boundaries.
+    # 两边补空格，让匹配只能在 token 边界处开始和结束。
     return f" {' '.join(inner)} " in f" {' '.join(outer)} "
 
 

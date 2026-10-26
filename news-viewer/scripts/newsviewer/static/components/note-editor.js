@@ -1,6 +1,6 @@
 import { saveNote } from "../store.js";
 
-const SAVE_DELAY_MS = 800; // save once typing pauses this long
+const SAVE_DELAY_MS = 800; // 停止输入这么久后保存
 
 export default {
   name: "NoteEditor",
@@ -13,7 +13,7 @@ export default {
   },
   watch: {
     itemId() {
-      // Save what was typed for the previous item before showing this one's note.
+      // 先保存上一个条目里输入的内容，再显示这个条目的笔记。
       this.flush();
       this.text = this.note;
       this.status = "";

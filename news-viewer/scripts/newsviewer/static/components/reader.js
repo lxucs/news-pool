@@ -3,7 +3,7 @@ import { fullTime, safeUrl } from "../util.js";
 import CollectionsMenu from "./collections-menu.js";
 import NoteEditor from "./note-editor.js";
 
-const IMPORTANCE_STEPS = 5; // segments in the importance bar
+const IMPORTANCE_STEPS = 5; // 重要度条的格数
 const REGIONS = { CN: "中国", US: "美国", EU: "欧洲", JP: "日本", GLOBAL: "全球" };
 
 export default {

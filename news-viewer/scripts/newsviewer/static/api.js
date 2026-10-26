@@ -1,5 +1,5 @@
-// The JSON API (api.py). Every non-GET request carries X-News-Viewer, which api.py requires so
-// that other web pages cannot write through the user's browser.
+// JSON API（api.py）。每个非 GET 请求都带 X-News-Viewer 头：api.py 要求有它，
+// 这样其他网页就不能借用户的浏览器写入数据。
 
 export class ServerGone extends Error {}
 

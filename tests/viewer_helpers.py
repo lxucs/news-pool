@@ -1,4 +1,4 @@
-"""Builders for viewer tests: pools on disk in the shape news-digest's schema.md describes."""
+"""阅读器测试的构造工具：按 news-digest 的 schema.md 描述的格式在磁盘上搭建新闻池。"""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ CREATED = "2026-10-22T09:00:00+08:00"
 
 
 def hex_id(n: int) -> str:
-    """A valid item id (12 hex digits)."""
+    """一个合法的条目 id（12 位十六进制）。"""
     return f"{n:012x}"
 
 
@@ -23,7 +23,7 @@ def item_doc(
     source_name: str = "来源甲",
     **fields: Any,
 ) -> dict[str, Any]:
-    """An item as news-digest's finalize writes it (schema.md, 条目); `fields` override keys."""
+    """news-digest 的 finalize 写出的条目（见 schema.md「条目」）；`fields` 覆盖对应的键。"""
     doc: dict[str, Any] = {
         "schema_version": "2.1",
         "id": item_id,
@@ -73,11 +73,11 @@ def write_run(
     with_file_field: bool = True,
     skip_files: Iterable[str] = (),
 ) -> Path:
-    """A run directory; when finalized, also its manifest and item files.
+    """写一个运行目录；已 finalize 的运行还会写出 manifest 和条目文件。
 
-    `with_file_field=False` writes a 2.0 manifest (no `file`; items at items/<id>.json). Ids in
-    `skip_files` get a manifest entry but no item file. Calling it again for the same run id
-    rewrites the run (a started run that later finalizes)."""
+    `with_file_field=False` 写 2.0 格式的 manifest（没有 `file`，条目文件在 items/<id>.json）。
+    `skip_files` 里的 id 在 manifest 里有记录，但不写条目文件。对同一个 run id 再调用一次会
+    重写这个运行（模拟先 started、之后才 finalize 的运行）。"""
     run_dir = pool / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     skipped = set(skip_files)

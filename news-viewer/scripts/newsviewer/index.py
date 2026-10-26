@@ -1,9 +1,8 @@
-"""The item index: finalized runs loaded into an in-memory SQLite database that also has
-viewer.db attached, so a view, its filters, search, marks and paging are one query.
+"""条目索引：已 finalize 的运行载入一个内存 SQLite 数据库，库上同时 attach 了 viewer.db，
+所以视图、过滤条件、搜索、用户标记和分页都是同一条查询。
 
-Finalized runs never change, so the index only grows: refresh() adds the runs that finalized
-since it last looked. Every public method holds one lock; the server answers on several
-threads and there is one connection."""
+已 finalize 的运行不会再变，所以索引只增不减：refresh() 补上自上次查看以来新 finalize 的运行。
+每个公共方法都持有同一个 lock；服务在多个 thread 上应答，而连接只有一个。"""
 
 from __future__ import annotations
 
@@ -96,7 +95,7 @@ _COLLECTIONS = (
 
 @dataclass(frozen=True)
 class Query:
-    """One list request: a view, optional filters and search, a page (api.py sets `limit`)."""
+    """一次列表请求：一个视图、可选的过滤条件和搜索、一页（`limit` 由 api.py 设定）。"""
 
     view: str = "latest"
     cid: int | None = None
@@ -118,11 +117,11 @@ class Library:
         self._clock = clock
         self._lock = threading.RLock()
         self._conn = userdb.connect(pool / VIEWER_DIR / userdb.DB_FILE)
-        # SQLite's lower() only folds ASCII; search folds both sides with Python's.
+        # SQLite 的 lower() 只转换 ASCII；搜索时两边都用 Python 的转小写。
         self._conn.create_function("pylower", 1, _lower, deterministic=True)
         self._conn.executescript(_SCHEMA)
         self._indexed: set[str] = set()
-        self._looked: dict[str, float] = {}  # run id -> run.json mtime when last seen unfinalized
+        self._looked: dict[str, float] = {}  # run_id -> 上次见它未 finalize 时 run.json 的 mtime
         self._last_refresh: float | None = None
         self.refresh(force=True)
 
@@ -130,10 +129,10 @@ class Library:
         with self._lock:
             self._conn.close()
 
-    # --- reading ---------------------------------------------------------------------------
+    # --- 读取 ------------------------------------------------------------------------------
 
     def refresh(self, *, force: bool = False) -> None:
-        """Index the runs that finalized since the last look (at most every refresh_s)."""
+        """把自上次查看以来新 finalize 的运行加入索引（最多每 refresh_s 秒一次）。"""
         with self._lock:
             now = self._clock()
             last = self._last_refresh
@@ -206,7 +205,7 @@ class Library:
                 "counts": {view: self._count(Query(view=view)) for view in COUNTED_VIEWS},
             }
 
-    # --- the user's marks ------------------------------------------------------------------
+    # --- 用户标记 --------------------------------------------------------------------------
 
     def set_state(
         self,
@@ -233,7 +232,7 @@ class Library:
             return userdb.set_note(self._conn, item_id, note, now=userdb.now_iso())
 
     def mark_read(self, *, ids: Iterable[str] = (), fetch_day: str = "") -> int:
-        """Mark one fetch day's visible items read, or the given ids; how many changed."""
+        """把某个抓取日的可见条目、或给定的 id 标为已读；返回改变了多少条。"""
         with self._lock:
             if fetch_day:
                 targets = [
@@ -269,11 +268,11 @@ class Library:
             userdb.add_to_collection(self._conn, cid, item_id, now=userdb.now_iso())
 
     def uncollect(self, cid: int, item_id: str) -> None:
-        # No item check: an id that left the index can still be removed from a collection.
+        # 不检查条目：已经不在索引里的 id 也能从收藏夹移除。
         with self._lock:
             userdb.remove_from_collection(self._conn, cid, item_id)
 
-    # --- internals (callers hold the lock) -------------------------------------------------
+    # --- 内部方法，调用方持有 lock ---------------------------------------------------------
 
     def _add_run(self, run: poolread.Run) -> None:
         rows: list[tuple[Any, ...]] = []
@@ -282,7 +281,7 @@ class Library:
         for entry in run.entries:
             item_id = str(entry["id"])
             if item_id in added or self._has(item_id):
-                continue  # an id indexed from an earlier run wins
+                continue  # 更早的运行已索引过的 id 优先
             added.add(item_id)
             doc = poolread.load_item(self.pool, entry)
             missing = doc is None
@@ -300,7 +299,7 @@ class Library:
             self._conn.executemany("INSERT OR IGNORE INTO item_tags VALUES (?, ?)", tags)
 
     def _where(self, query: Query) -> tuple[str, str, list[Any]]:
-        """Extra joins, the WHERE clause, and their parameters in the order they appear."""
+        """额外的 join、WHERE 子句，以及按出现顺序排列的参数。"""
         if query.view not in _VIEW_WHERE:
             raise ApiError(f"view must be one of: {', '.join(VIEWS)}")
         joins = ""
@@ -334,7 +333,7 @@ class Library:
         return int(self._conn.execute(sql, params).fetchone()[0])
 
     def _counts_by(self, column: str) -> list[dict[str, Any]]:
-        """Visible (not hidden) items per value of `column`, most first."""
+        """`column` 每个取值下的可见（未隐藏）条目数，多的在前。"""
         sql = (
             f"SELECT {column} AS name, COUNT(*) AS count {_FROM} WHERE s.hidden_at IS NULL "
             f"GROUP BY {column} ORDER BY count DESC, name"
@@ -357,7 +356,7 @@ class Library:
 
 
 def _doc_from_entry(run: poolread.Run, entry: dict[str, Any]) -> dict[str, Any]:
-    """What the manifest knows about an item whose file is missing (schema.md, manifest)."""
+    """条目文件缺失时，manifest 对该条目所知的内容（见 schema.md 的 manifest 一节）。"""
     title_zh = _text(entry.get("title_zh"))
     return {
         "id": entry["id"],
@@ -399,7 +398,7 @@ def _item_row(
         "title_zh": title_zh,
         "summary": _text(doc.get("summary")),
         "url": _text(source.get("url")),
-        # A missing file has no related list, but the manifest still counts it.
+        # 文件缺失时没有 related 列表，但 manifest 里仍记着它的数量。
         "related_count": int(_number(entry.get("related_count"))) if missing else len(related),
         "tags": json.dumps(_strings(doc.get("tags")), ensure_ascii=False),
         "flags": json.dumps({key: bool(flags.get(key)) for key in FLAG_KEYS}),
@@ -411,8 +410,8 @@ def _item_row(
 
 
 def _haystack(doc: dict[str, Any]) -> str:
-    """Everything search looks at, lowercased: titles, summary, synopsis, key points, why it
-    matters, tags, entities, the source name, related titles."""
+    """搜索查看的全部内容，转成小写：标题、summary、synopsis、key_points、why_it_matters、
+    标签、entities、来源名、相关报道的标题。"""
     parts = [_text(doc.get(key)) for key in ("title", "title_zh", "summary", "synopsis")]
     parts.append(_text(doc.get("why_it_matters")))
     parts.extend(_strings(doc.get("key_points")))

@@ -1,4 +1,4 @@
-"""Shared test helpers (not fixtures)."""
+"""测试共用的辅助函数（不是 fixture）。"""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from newsdigest.paths import SKILL_DIR
 FIXTURES = Path(__file__).parent / "fixtures"
 SAMPLE = SKILL_DIR / "examples" / "raw_sample.jsonl"
 CST = timezone(timedelta(hours=8))
-SAMPLE_NOW = datetime(2026, 10, 21, 0, 0, tzinfo=CST)  # raw_sample.jsonl is dated 2026-10-20
+SAMPLE_NOW = datetime(2026, 10, 21, 0, 0, tzinfo=CST)  # raw_sample.jsonl 的日期是 2026-10-20
 
 
 def fixture_bytes(name: str) -> bytes:
@@ -37,7 +37,7 @@ def write_run(
     fetch_ok: dict[str, bool] | None = None,
     seen: str | None = None,
 ) -> Path:
-    """A minimal run directory for pool-level tests (not a full pipeline run)."""
+    """给新闻池层面的测试用的最小运行目录（不是完整流程跑出来的运行）。"""
     run_dir = pool_root / "runs" / run_id
     run_dir.mkdir(parents=True)
     sources = sources or {}
@@ -61,7 +61,7 @@ def pin_clock(monkeypatch: pytest.MonkeyPatch, when: datetime) -> None:
 
 
 def started_run(pool: Path, *argv: str) -> Path:
-    """`init` (idempotent) + `start` with extra flags; returns the new run directory."""
+    """`init`（幂等）+ 带额外参数的 `start`；返回新的运行目录。"""
     assert cli.main(["init", "--pool", str(pool)]) == 0
     assert cli.main(["start", "--pool", str(pool), *argv]) == 0
     return sorted((pool / "runs").iterdir())[-1]
@@ -82,7 +82,7 @@ def write_candidates(run_dir: Path, source_id: str, rows: list[dict[str, Any]] |
 
 
 def set_fetched(run_dir: Path, fetch: dict[str, Any]) -> None:
-    """Stand in for `fetch` when a test wrote the candidate files itself."""
+    """测试自己写了候选文件时，用它代替 `fetch`。"""
     run = read_json_file(run_dir / "run.json")
     run["fetch"] = fetch
     run["stage"] = "fetched"
@@ -90,7 +90,7 @@ def set_fetched(run_dir: Path, fetch: dict[str, Any]) -> None:
 
 
 def prepared_run(pool: Path, monkeypatch: pytest.MonkeyPatch, *start_args: str) -> Path:
-    """A run over examples/raw_sample.jsonl as manual candidates, through `prepare`."""
+    """把 examples/raw_sample.jsonl 当作 manual 候选的一次运行，已跑到 `prepare`。"""
     pin_clock(monkeypatch, SAMPLE_NOW)
     run_dir = started_run(pool, "--only", "none", "--hours", "48", *start_args)
     write_candidates(run_dir, "manual", SAMPLE.read_text(encoding="utf-8"))
@@ -100,7 +100,7 @@ def prepared_run(pool: Path, monkeypatch: pytest.MonkeyPatch, *start_args: str) 
 
 
 def id_for(run_dir: Path, needle: str) -> str:
-    """Id of the prepared record whose URL contains `needle`."""
+    """`prepare` 产出的记录中，URL 包含 `needle` 的那条的 id。"""
     matches = [r["id"] for r in read_json_file(run_dir / "records.json") if needle in r["url"]]
     assert len(matches) == 1, (needle, matches)
     return matches[0]
@@ -112,7 +112,7 @@ def write_triage(run_dir: Path, doc: Any) -> None:
 
 
 def sample_triage(run_dir: Path) -> dict[str, Any]:
-    """What an agent would write for raw_sample.jsonl: 3 events (one with two reports), 1 drop."""
+    """agent 会为 raw_sample.jsonl 写出的 triage：3 个事件（其中一个有两篇报道），drop 1 条。"""
     i = lambda needle: id_for(run_dir, needle)  # noqa: E731
     return {
         "events": [

@@ -1,8 +1,7 @@
-"""The HTTP API and the static files as one pure function: App.handle(Request) -> Response.
+"""HTTP API 和静态文件合成一个纯函数：App.handle(Request) -> Response。
 
-server.py only translates http.server to and from these dataclasses, so every rule here
-(routing, the localhost Host check, the write header, static path containment) is tested
-without a socket."""
+server.py 只负责在 http.server 与这些 dataclass 之间转换，所以这里的每条规则（路由、只认
+localhost 的 Host 检查、写请求头、静态文件路径不越界）都不用 socket 就能测试。"""
 
 from __future__ import annotations
 
@@ -21,8 +20,8 @@ from .paths import STATIC_DIR
 from .poolread import ID_PATTERN
 
 APP_NAME = "news-viewer"
-WRITE_HEADER = "x-news-viewer"  # every non-GET request carries `X-News-Viewer: 1` (design §8)
-MAX_LIMIT = 200  # rows per page; a cap, so `limit=10**9` cannot pin the server
+WRITE_HEADER = "x-news-viewer"  # 每个非 GET 请求都要带 `X-News-Viewer: 1`（防跨站写入）
+MAX_LIMIT = 200  # 每页行数的上限，免得 `limit=10**9` 拖住服务
 JSON_TYPE = "application/json; charset=utf-8"
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -33,7 +32,7 @@ CONTENT_TYPES = {
     ".ico": "image/x-icon",
     ".md": "text/plain; charset=utf-8",
 }
-# 'unsafe-eval': Vue compiles the page's templates in the browser (there is no build step).
+# 'unsafe-eval'：Vue 在浏览器里编译页面的模板（没有构建步骤）。
 SECURITY_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; "
@@ -49,9 +48,9 @@ _DAY_RE = re.compile(r"\d{6}")
 @dataclass(frozen=True)
 class Request:
     method: str
-    path: str  # percent-decoded, without the query string
+    path: str  # 已做百分号解码，不含查询字符串
     query: dict[str, str] = field(default_factory=dict)
-    headers: dict[str, str] = field(default_factory=dict)  # lower-case names
+    headers: dict[str, str] = field(default_factory=dict)  # 名字为小写
     body: bytes = b""
 
 
@@ -113,7 +112,7 @@ class App:
         headers = {**SECURITY_HEADERS, **resp.headers}
         return Response(resp.status, resp.body, resp.content_type, headers)
 
-    # --- routing ---------------------------------------------------------------------------
+    # --- 路由 ------------------------------------------------------------------------------
 
     def _api(self, req: Request) -> Response:
         allowed: list[str] = []
@@ -140,7 +139,7 @@ class App:
         content_type = CONTENT_TYPES.get(target.suffix, "application/octet-stream")
         return Response(200, target.read_bytes(), content_type, {"Cache-Control": "no-cache"})
 
-    # --- endpoints -------------------------------------------------------------------------
+    # --- 接口 ------------------------------------------------------------------------------
 
     def _health(self, req: Request, params: dict[str, str]) -> dict[str, Any]:
         return {
@@ -251,7 +250,7 @@ def _body(req: Request) -> dict[str, Any]:
         return {}
     try:
         obj = json.loads(req.body.decode("utf-8"))
-    except ValueError as exc:  # UnicodeDecodeError is a ValueError too
+    except ValueError as exc:  # UnicodeDecodeError 也是 ValueError
         raise ApiError("the request body must be JSON") from exc
     if not isinstance(obj, dict):
         raise ApiError("the request body must be a JSON object")

@@ -1,22 +1,22 @@
-"""Expected failures: command exit codes (SKILL.md documents each) and API error statuses."""
+"""预期内的失败：命令退出码（各自的含义见 SKILL.md）和 API 错误状态码。"""
 
 from __future__ import annotations
 
 
 class NvError(Exception):
-    """A command failure with a defined exit code; its message is shown to the agent as-is."""
+    """有明确退出码的命令失败；消息原样展示给 agent。"""
 
     exit_code = 1
 
 
 class UsageError(NvError):
-    """Bad flags, no pool, a broken <pool>/viewer/config.json."""
+    """参数不对、没有新闻池、<pool>/viewer/config.json 写坏了。"""
 
     exit_code = 1
 
 
 class StartFailed(NvError):
-    """The background server did not come up; server.log says why."""
+    """后台服务没能启动起来；原因见 server.log。"""
 
     exit_code = 5
 
@@ -25,7 +25,7 @@ INTERNAL_ERROR_EXIT = 5
 
 
 class ApiError(Exception):
-    """A request the API refuses; it becomes {"error": message} with this HTTP status."""
+    """API 拒绝的请求；它变成 {"error": message}，HTTP 状态码为这里的 status。"""
 
     status = 400
 

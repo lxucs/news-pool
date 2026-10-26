@@ -222,6 +222,6 @@ __marimo__/
 # macOS
 .DS_Store
 
-# Internal design notes and research logs (not public documentation)
+# 内部的设计笔记和调研记录（不是公开文档）
 docs/design/
 *research.md

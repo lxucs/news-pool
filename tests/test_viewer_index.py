@@ -66,7 +66,7 @@ def ids(library: Library, **query: Any) -> list[str]:
 
 
 def _fake_clock(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Distinct, increasing timestamps for marks, so view orders are deterministic."""
+    """给标记提供互不相同且递增的时间戳，让视图的排序确定。"""
     ticks = iter(range(60))
     monkeypatch.setattr(userdb, "now_iso", lambda: f"2026-10-22T10:{next(ticks):02d}:00+08:00")
 
@@ -130,8 +130,8 @@ def test_refresh_picks_up_a_run_that_finalizes_later(pool: Path) -> None:
     run_dir = write_run(pool, RUN3, [item_doc(hex_id(0xE1), "稍后完成")], created_at=DAY2)
     run_json = run_dir / "run.json"
     stat = run_json.stat()
-    os.utime(run_json, (stat.st_atime, stat.st_mtime + 10))  # filesystems with coarse mtimes
-    assert library.list_items(Query())["total"] == 5  # within refresh_s: not looked at yet
+    os.utime(run_json, (stat.st_atime, stat.st_mtime + 10))  # 照顾 mtime 精度粗的文件系统
+    assert library.list_items(Query())["total"] == 5  # 还在 refresh_s 之内：尚未重新扫描
     now[0] = 6.0
     assert library.list_items(Query())["total"] == 6
     library.close()
@@ -175,7 +175,7 @@ def test_starred_and_collection_views_put_the_latest_mark_first(
 
 def test_search_matches_every_term_across_fields_and_notes(lib: Library) -> None:
     assert ids(lib, q="发布") == [B1, A1, A3]
-    assert ids(lib, q="发布 gpu") == [B1]  # every term, case-insensitive
+    assert ids(lib, q="发布 gpu") == [B1]  # 每个词都要匹配，不区分大小写
     assert ids(lib, q="芯片") == [A2]
     assert ids(lib, q="不存在的词") == []
     lib.set_note(A3, "下周跟进")
@@ -183,7 +183,7 @@ def test_search_matches_every_term_across_fields_and_notes(lib: Library) -> None
 
 
 def test_title_matches_rank_before_body_matches(lib: Library) -> None:
-    # A2 has 量产 in its title; B1 only in its synopsis, though B1 is newer.
+    # A2 的标题里有「量产」；B1 只在 synopsis 里有，尽管 B1 更新。
     assert ids(lib, q="量产") == [A2, B1]
 
 
@@ -251,7 +251,7 @@ def test_marks_survive_a_restart(pool: Path) -> None:
 def test_the_viewer_reads_a_pool_written_by_news_digest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The contract test: if the two skills drift apart, this breaks."""
+    """契约测试：两个 skill 一旦对不上，这里就会失败。"""
     pool = tmp_path / "p"
     run_dir = prepared_run(pool, monkeypatch)
     write_triage(run_dir, sample_triage(run_dir))

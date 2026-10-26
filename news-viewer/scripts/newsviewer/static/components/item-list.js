@@ -17,7 +17,7 @@ const EMPTY_TEXT = {
   hidden: "没有隐藏的新闻",
   collection: "这个收藏夹还是空的",
 };
-const LOAD_MORE_PX = 400; // fetch the next page when the list is scrolled this close to its end
+const LOAD_MORE_PX = 400; // 列表滚动到离底部这么近时加载下一页
 
 export default {
   name: "ItemList",

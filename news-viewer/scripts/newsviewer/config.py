@@ -1,4 +1,4 @@
-"""Settings: references/defaults.json deep-merged with an optional <pool>/viewer/config.json."""
+"""设置：references/defaults.json 与可选的 <pool>/viewer/config.json 深度合并。"""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ NUMERIC_KEYS = ("port", "idle_minutes", "heartbeat_s", "start_timeout_s", "refre
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """Nested objects merge; anything else is replaced; `_`-keys are comments (as news-digest)."""
+    """嵌套对象逐层合并，其他值直接替换；以 `_` 开头的键是注释（与 news-digest 相同）。"""
     out = {k: v for k, v in base.items() if not k.startswith("_")}
     for key, value in override.items():
         if key.startswith("_"):

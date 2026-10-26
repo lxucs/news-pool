@@ -1,10 +1,10 @@
-// Pure helpers: dates, links, highlighting. tests/viewer_js_check.js checks them.
+// 纯函数工具：日期、链接、高亮。由 tests/viewer_js_check.js 检查。
 
 const WEEKDAYS = "日一二三四五六";
 const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
 
 export function dayLabel(fetchDay, now = new Date()) {
-  // fetch_day is yymmdd, the item directory's name.
+  // fetch_day 是 yymmdd 格式，即条目所在目录的名字。
   if (!/^\d{6}$/.test(fetchDay || "")) return "日期未知";
   const date = new Date(
     2000 + Number(fetchDay.slice(0, 2)),
@@ -20,7 +20,7 @@ export function dayLabel(fetchDay, now = new Date()) {
 }
 
 export function shortTime(iso) {
-  // In the timestamp's own offset (the pool writes +08:00 by default): "10-21 21:43".
+  // 按时间戳自带的时区偏移显示（新闻池默认写 +08:00）："10-21 21:43"。
   const m = ISO_RE.exec(iso || "");
   return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : "";
 }
@@ -31,7 +31,7 @@ export function fullTime(iso) {
 }
 
 export function safeUrl(url) {
-  // Fetched data is untrusted: only http(s) URLs become links or images.
+  // 抓取来的数据不可信：只有 http(s) URL 才会变成链接或图片。
   return /^https?:\/\//i.test(url || "") ? url : null;
 }
 
@@ -42,7 +42,7 @@ export function runLabel(run) {
 }
 
 export function segments(text, query) {
-  // [{text, hit}] runs, so search terms are highlighted without rendering any HTML.
+  // 切成 [{text, hit}] 片段，这样高亮搜索词时不必渲染任何 HTML。
   const source = text || "";
   const terms = (query || "").toLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length) return [{ text: source, hit: false }];

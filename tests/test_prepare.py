@@ -100,7 +100,7 @@ def test_source_window_applies_and_links_are_exempt(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pin_clock(monkeypatch, SAMPLE_NOW)
-    run_dir = started_run(tmp_path / "p", "--only", "qbitai", "--hours", "6")  # from 10-20 18:00
+    run_dir = started_run(tmp_path / "p", "--only", "qbitai", "--hours", "6")  # 从 10-20 18:00 开始
     write_candidates(
         run_dir,
         "qbitai",
@@ -420,6 +420,6 @@ def test_title_dup_min_tokens_is_tunable(tmp_path: Path, monkeypatch: pytest.Mon
     run["settings"]["title_dup_min_tokens"] = 2
     save_run(run_dir, run)
     assert cli.main(["prepare", "--run", str(run_dir)]) == 0
-    # Both tier 3, so the earlier candidate (声明) survives; the longer title is the duplicate.
+    # 两条都是 tier 3，所以较早的候选（声明）留下，较长的标题算作重复。
     assert [r["title"] for r in read_json_file(run_dir / "records.json")] == ["声明"]
     assert load_run(run_dir)["stats"]["duplicate"] == 1

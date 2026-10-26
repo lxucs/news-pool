@@ -1,4 +1,4 @@
-"""Source payload → candidate rows. Pure functions: text in, rows out; no network here."""
+"""来源的响应内容 → 候选行。纯函数：输入文本，输出候选行；这里不联网。"""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ WSCN_SOURCE_NAME = "华尔街见闻"
 HN_ITEM_URL = "https://news.ycombinator.com/item?id={}"
 WSCN_ARTICLE_URL = "https://wallstreetcn.com/articles/{}"
 MRSS_NS = "{http://search.yahoo.com/mrss/}"
-QUOTE_CHARS = 80  # how much of an unparsable body an error quotes
+QUOTE_CHARS = 80  # 响应体解析不了时，错误消息最多引用多少字符
 
 _XML_DECL_RE = re.compile(r"\A\s*<\?xml[^>]*\?>")
 _GDELT_SEEN_RE = re.compile(r"\d{8}T\d{6}Z")
@@ -26,20 +26,21 @@ _ATTR_RE = re.compile(r"""([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 _JSON_LD_DATE_RE = re.compile(r'"datePublished"\s*:\s*"([^"]+)"')
 _TIME_TAG_RE = re.compile(r"""<time\b[^>]*?\sdatetime\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.I)
-VISIBLE_TIME_WINDOW = 300  # chars after a date element in which its time element must start
-CAPTCHA_MARKER = "wappoc_appmsgcaptcha"  # WeChat's verification page, served instead of an article
-# Elements whose class mentions date/time (`<span class="date">`); the text is read up to the
-# first closing tag of the same name, and the lookahead lets nested ones match as well.
+VISIBLE_TIME_WINDOW = 300  # 时间元素的开头距日期元素的开头不能超过这么多字符
+CAPTCHA_MARKER = "wappoc_appmsgcaptcha"  # 微信代替文章返回的验证页
+# class 里含 date/time 的元素（`<span class="date">`）；文本读到第一个同名的闭合标签为止，
+# 用前瞻断言是为了让嵌套的元素也能匹配上。
 _DATE_TIME_ELEMENT_RE = re.compile(
     r"""<(\w+)\b[^>]*?\sclass\s*=\s*(["'])([^"']*(?:date|time)[^"']*)\2[^>]*>(?=(.*?)</\1\s*>)""",
     re.I | re.S,
 )
 _VISIBLE_DATE_RE = re.compile(r"(?<!\d)(\d{4})\s*[-/年]\s*(\d{1,2})\s*[-/月]\s*(\d{1,2})(?!\d)")
 _VISIBLE_CLOCK_RE = re.compile(r"(?<![\d:])(\d{1,2}):(\d{2})(?::(\d{2}))?(?![\d:])")
-# Publish-time meta keys tried after the WeChat `ct` and `article:published_time`, in order.
+# 发布时间的 meta 键，依次尝试；排在微信的 `ct`、`article:published_time` 和 JSON-LD 的
+# `datePublished` 之后。
 _META_TIME_KEYS = ("datepublished", "pubdate", "publishdate", "publish-date", "og:release_date")
 _JS_HEX_RE = re.compile(r"\\x([0-9a-fA-F]{2})")
-# mp.weixin.qq.com article pages carry their metadata in inline script variables.
+# mp.weixin.qq.com 的文章页把元数据放在内联脚本的变量里。
 _WECHAT = {
     "title": (r"var\s+msg_title\s*=\s*'(.*?)'\s*\.html", r'var\s+msg_title\s*=\s*"(.*?)"'),
     "source": (r'var\s+nickname\s*=\s*htmlDecode\("(.*?)"\)', r'var\s+nickname\s*=\s*"(.*?)"'),
@@ -49,7 +50,7 @@ _WECHAT = {
 
 
 class ParseError(Exception):
-    """The payload is not in the shape this adapter expects (e.g. an HTML block page)."""
+    """响应内容不是这个 adapter 预期的结构（例如一个 HTML 拦截页）。"""
 
 
 def _local(tag: str) -> str:
@@ -78,7 +79,7 @@ def _child(node: ElementTree.Element, name: str) -> ElementTree.Element | None:
 
 
 def _text(node: ElementTree.Element, *names: str) -> str:
-    """Text of the first non-empty child among `names`, tried in that order."""
+    """按 `names` 的顺序，取第一个非空子元素的文本。"""
     for name in names:
         child = _child(node, name)
         if child is not None and (child.text or "").strip():
@@ -118,7 +119,7 @@ def _image(node: ElementTree.Element) -> str:
 
 
 def parse_feed(text: str) -> tuple[str, list[Candidate]]:
-    """RSS 2.0, RSS 1.0 (RDF) or Atom → (feed title, rows). The caller names the source."""
+    """RSS 2.0、RSS 1.0（RDF）或 Atom → (订阅源标题, 候选行)。来源名由调用方给出。"""
     root = _parse_xml(text)
     kind = _local(root.tag)
     if kind not in ("rss", "feed", "RDF"):
@@ -161,7 +162,7 @@ def parse_gnews(text: str) -> list[Candidate]:
         if source and title.endswith(suffix):
             title = title[: -len(suffix)].rstrip()
         snippet = strip_html(_text(item, "description"))
-        if title in snippet:  # the description only repeats the headline and the outlet
+        if title in snippet:  # description 只是重复了标题和发布方
             snippet = ""
         rows.append(
             {
@@ -195,7 +196,7 @@ def parse_hn(text: str) -> list[Candidate]:
         rows.append(
             {
                 "url": url,
-                # HN only aggregates; the linked site is the real source and decides the tier.
+                # HN 只做聚合；链接指向的网站才是真正的来源，tier 也由它决定。
                 "source": domain_of(url) or "news.ycombinator.com",
                 "title": title,
                 "author": str(hit.get("author") or ""),
@@ -222,7 +223,7 @@ def parse_wscn(text: str) -> list[Candidate]:
         url = str(art.get("uri") or "")
         if not url.startswith("http"):
             url = WSCN_ARTICLE_URL.format(art["id"]) if art.get("id") else ""
-        if not title or not url or url in seen:  # the API repeats entries
+        if not title or not url or url in seen:  # 接口会重复返回同一篇文章
             continue
         seen.add(url)
         author = art.get("author")
@@ -242,7 +243,7 @@ def parse_wscn(text: str) -> list[Candidate]:
 
 def parse_gdelt(text: str) -> list[Candidate]:
     data = _parse_json(text)
-    if data == {}:  # GDELT answers {} when nothing matches
+    if data == {}:  # 没有匹配结果时 GDELT 返回 {}
         return []
     articles = data.get("articles") if isinstance(data, dict) else None
     if not isinstance(articles, list):
@@ -296,8 +297,8 @@ def _wechat(html_text: str, key: str) -> str:
 
 
 def _visible_time(html_text: str) -> str | None:
-    """`YYYY-MM-DD[ HH:MM:SS]` from visible date/time elements, e.g. qbitai's
-    `<span class="date">2026-10-21</span><span class="time">10:37:39</span>`."""
+    """从页面上可见的日期 / 时间元素取 `YYYY-MM-DD[ HH:MM:SS]`，例如 qbitai 的
+    `<span class="date">2026-10-21</span><span class="time">10:37:39</span>`。"""
     found = [
         (m.start(), m.group(3).lower(), strip_html(m.group(4)))
         for m in _DATE_TIME_ELEMENT_RE.finditer(html_text)
@@ -320,7 +321,7 @@ def _visible_time(html_text: str) -> str | None:
 
 
 def _publish_time(html_text: str, meta: dict[str, str], tz: tzinfo) -> datetime | None:
-    """The first publish time found: WeChat `ct`, then the usual markup, most explicit first."""
+    """找到的第一个发布时间：先看微信的 `ct`，再看常见的标记，越明确的越优先。"""
     ct = _wechat(html_text, "ct")
     candidates: list[object] = [int(ct)] if ct else []
     candidates.append(meta.get("article:published_time"))
@@ -329,7 +330,7 @@ def _publish_time(html_text: str, meta: dict[str, str], tz: tzinfo) -> datetime 
     candidates += [meta.get(key) for key in _META_TIME_KEYS]
     tag = _TIME_TAG_RE.search(html_text)
     candidates.append((tag.group(1) or tag.group(2)) if tag else None)
-    candidates.append(_visible_time(html_text))  # last: a date shown on the page, no zone
+    candidates.append(_visible_time(html_text))  # 最后才用页面上显示的日期，不带时区
     return next((t for t in (parse_time(c, tz) for c in candidates) if t is not None), None)
 
 
@@ -338,7 +339,7 @@ def is_captcha_page(final_url: str, html_text: str) -> bool:
 
 
 def parse_article_page(html_text: str, final_url: str, tz: tzinfo) -> Candidate:
-    """Title / outlet / time / description of one article page (WeChat or ordinary)."""
+    """一个文章页（微信或普通网页）的标题、发布方、时间和描述。"""
     meta = _meta(html_text)
     title_m = _TITLE_RE.search(html_text)
     title = (

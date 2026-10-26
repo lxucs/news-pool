@@ -1,4 +1,4 @@
-"""Validation of agent-written files (triage.json, enriched-*.jsonl) and the `check` command."""
+"""校验 agent 写的文件（triage.json、enriched-*.jsonl），以及 `check` 命令。"""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ ENRICH_INPUT_FILE = "enrich_input.json"
 ERRORS_FILE = "errors.json"
 ENRICHED_RE = re.compile(r"enriched-(\d+)\.jsonl")
 
-# Schema rules (documented in references/schema.md and SKILL.md).
+# schema 规则（写在 references/schema.md 和 SKILL.md 里）。
 SENTIMENTS = ("positive", "neutral", "negative")
 REGIONS = ("CN", "US", "EU", "JP", "GLOBAL")
 FLAG_KEYS = ("is_breaking", "is_opinion", "needs_review")
@@ -226,7 +226,7 @@ class Enriched:
 
 
 def kept_primaries(ctx: RunContext, triage: Triage) -> dict[str, str]:
-    """Kept primary id → its language (an English item needs `title_zh`)."""
+    """保留的 primary id → 它的语言（英文条目必须有 `title_zh`）。"""
     return {
         e["primary"]: ctx.records[e["primary"]]["lang"] for e in triage.kept(ctx.min_importance)
     }
@@ -244,7 +244,7 @@ def load_enriched(ctx: RunContext, primaries: dict[str, str]) -> tuple[Enriched,
         numbered.append((int(m.group(1)), path))
     numbered.sort()
     if not numbered:
-        if not primaries:  # nothing was kept: there is nothing to enrich
+        if not primaries:  # 一条都没保留：没有摘要要写
             return Enriched({}, warnings), []
         missing = Problem(
             "enriched-1.jsonl", None, "", "", "missing; write it from enrich_input.json"
@@ -252,11 +252,11 @@ def load_enriched(ctx: RunContext, primaries: dict[str, str]) -> tuple[Enriched,
         return Enriched({}, warnings), [missing]
 
     latest: dict[str, tuple[str, int, dict[str, Any]]] = {}
-    unusable: list[str] = []  # file:line of each line that carries no row
+    unusable: list[str] = []  # 读不出数据的各行的位置（文件:行）
     for _, path in numbered:
         rows, json_problems = load_agent_jsonl(path)
-        # Only a kept primary left without a line is real loss; a corrected line in a later
-        # file makes a broken one harmless, so these are reported only as warnings.
+        # 只有保留的 primary 没有对应的行才是真的缺失；后面的文件里有改好的行时坏行就无害，
+        # 所以这些只作为 warning 报告。
         for p in json_problems:
             where = f"{p.file}:{p.line}:{p.col}"
             unusable.append(where)

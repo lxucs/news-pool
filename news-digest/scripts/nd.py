@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""news-digest command line. Workflow: ../SKILL.md. Commands: `nd.py --help`."""
+"""news-digest 命令行。流程见 ../SKILL.md，命令见 `nd.py --help`。"""
 
 import os
 import sys

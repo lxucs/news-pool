@@ -1,4 +1,4 @@
-"""Run lifecycle: `init` (pool + profile), `sources` (what can be selected), `start` (a run)."""
+"""运行的生命周期：`init`（新闻池和 profile）、`sources`（可选的来源）、`start`（新建运行）。"""
 
 from __future__ import annotations
 

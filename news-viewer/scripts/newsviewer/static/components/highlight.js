@@ -1,7 +1,7 @@
 import { store } from "../store.js";
 import { segments } from "../util.js";
 
-// Search terms highlighted as text segments, never as HTML (fetched text is untrusted).
+// 以文本片段高亮搜索词，绝不渲染成 HTML（抓取来的文本不可信）。
 export default {
   name: "Hl",
   props: { text: { type: String, default: "" } },

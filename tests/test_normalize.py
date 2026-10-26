@@ -52,7 +52,7 @@ def test_domain_of_strips_www_and_port() -> None:
         ("Tue, 20 Oct 2026 01:30:00 GMT", datetime(2026, 10, 20, 1, 30, tzinfo=timezone.utc)),
         ("2026/10/20 09:30:00", datetime(2026, 10, 20, 9, 30, tzinfo=CST)),
         ("2026-10-20 09:30", datetime(2026, 10, 20, 9, 30, tzinfo=CST)),
-        # Python 3.9's fromisoformat only takes 3 or 6 fractional digits.
+        # Python 3.9 的 fromisoformat 只接受 3 位或 6 位小数秒。
         ("2026-10-20T09:30:00.5+08:00", datetime(2026, 10, 20, 9, 30, 0, 500000, tzinfo=CST)),
         ("2026-10-20T09:30:00.1234+08:00", datetime(2026, 10, 20, 9, 30, 0, 123400, tzinfo=CST)),
         (
@@ -102,10 +102,10 @@ def test_detect_lang() -> None:
 @pytest.mark.parametrize(
     "text, lang",
     [
-        ("OpenAI发布GPT-5", "zh"),  # short Chinese title with brand names
+        ("OpenAI发布GPT-5", "zh"),  # 带品牌名的中文短标题
         ("苹果发布iPhone 17 Pro Max", "zh"),
-        ("Apple 发布 new models launch", "en"),  # a few CJK characters in an English title
-        ("发 OpenAI", "en"),  # a single CJK character is not enough
+        ("Apple 发布 new models launch", "en"),  # 英文标题里夹着几个 CJK 字符
+        ("发 OpenAI", "en"),  # 只有一个 CJK 字符不够
         ("", "en"),
     ],
 )
@@ -145,6 +145,6 @@ def test_title_tokens_are_latin_words_digits_and_cjk_chars() -> None:
 def test_contains_run_requires_consecutive_tokens() -> None:
     assert contains_run(("a", "b"), ("x", "a", "b"))
     assert contains_run(("a", "b"), ("a", "b"))
-    assert not contains_run(("a", "b"), ("xa", "b"))  # no straddling a token boundary
-    assert not contains_run(("a", "b"), ("a", "x", "b"))  # scattered, not consecutive
+    assert not contains_run(("a", "b"), ("xa", "b"))  # 不能跨越 token 边界
+    assert not contains_run(("a", "b"), ("a", "x", "b"))  # 分散的，不连续
     assert not contains_run((), ("a",))

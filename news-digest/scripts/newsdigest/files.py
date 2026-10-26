@@ -1,4 +1,4 @@
-"""Pool file I/O: atomic writes, our own JSON, and located parsing of agent-written JSON."""
+"""新闻池文件读写：原子写入、脚本自己的 JSON，以及解析 agent 写的 JSON 并定位出错位置。"""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-QUOTE_CHARS = 120  # how much of an offending line an error message quotes
+QUOTE_CHARS = 120  # 错误消息最多引用出错行的多少字符
 
 
 def write_text_atomic(path: Path, text: str) -> None:
-    """Write a temp file in the same directory, then rename: readers never see half a file."""
+    """先在同一目录写临时文件再重命名：读者永远看不到写了一半的文件。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
@@ -42,7 +42,7 @@ def read_json(path: Path) -> Any:
 
 
 def read_jsonl_loose(path: Path) -> tuple[list[dict[str, Any]], int]:
-    """Object rows of a candidates file, and how many lines were skipped as unusable."""
+    """候选文件中是对象的行，以及因无法使用而跳过的行数。"""
     rows: list[dict[str, Any]] = []
     skipped = 0
     with path.open(encoding="utf-8-sig", errors="replace") as fh:
@@ -78,7 +78,7 @@ class AgentJsonError(Exception):
 
 
 def _unwrap_lines(text: str) -> list[str]:
-    """Drop a BOM and blank out one surrounding Markdown fence, keeping line numbers intact."""
+    """去掉 BOM，并把外层的一对 Markdown 代码围栏清成空行，行号保持不变。"""
     if text.startswith("\ufeff"):
         text = text[1:]
     lines = text.split("\n")
@@ -105,7 +105,7 @@ def load_agent_json(path: Path) -> Any:
 
 
 def load_agent_jsonl(path: Path) -> tuple[list[tuple[int, Any]], list[JsonProblem]]:
-    """(line number, value) for each parsable line, and a problem for each line that is not."""
+    """每个能解析的行给出 (行号, 值)，每个解析不了的行给出一条问题记录。"""
     rows: list[tuple[int, Any]] = []
     problems: list[JsonProblem] = []
     lines = _unwrap_lines(path.read_text(encoding="utf-8", errors="replace"))

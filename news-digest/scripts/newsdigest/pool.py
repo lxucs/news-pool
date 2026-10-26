@@ -1,5 +1,4 @@
-"""The pool on disk: runs and their status, per-source coverage, the seen set, the commit,
-and the item file naming."""
+"""磁盘上的新闻池：运行及其状态、各来源的覆盖范围、seen 集合、提交，以及条目文件的命名。"""
 
 from __future__ import annotations
 
@@ -52,7 +51,7 @@ class Pool:
         return self.root / "profile"
 
     def runs(self) -> list[tuple[Path, dict[str, Any]]]:
-        """Every run directory with its run.json, oldest first."""
+        """每个运行目录及其 run.json，最早的在前。"""
         if not self.runs_dir.is_dir():
             return []
         dirs = sorted(p for p in self.runs_dir.iterdir() if (p / RUN_FILE).is_file())
@@ -88,14 +87,14 @@ def require_open(run: dict[str, Any]) -> None:
 
 
 def require_stage(run: dict[str, Any], stage: str, hint: str) -> None:
-    """Fail unless the run has reached `stage` (steps may be rerun, not skipped)."""
+    """运行还没到 `stage` 就报错（步骤可以重跑，不能跳过）。"""
     current = run.get("stage", STAGE_STARTED)
     if STAGES.index(current) < STAGES.index(stage):
         raise UsageError(f"run {run.get('run_id')} is at stage {current!r}; {hint}")
 
 
 def coverage(runs: list[dict[str, Any]]) -> dict[str, datetime]:
-    """Per source, the latest window end among finalized daily runs that fetched it successfully."""
+    """每个来源的覆盖终点：成功抓取过它的、已 finalize 的每日运行里最晚的时间窗终点。"""
     cov: dict[str, datetime] = {}
     for run in runs:
         if run.get("status") != STATUS_FINALIZED or run.get("kind") != KIND_DAILY:
@@ -112,7 +111,7 @@ def coverage(runs: list[dict[str, Any]]) -> dict[str, datetime]:
 
 
 def seen_ids(pool: Pool, kind: str) -> set[str]:
-    """Ids a new run skips: a daily run skips everything seen, an adhoc run only kept items."""
+    """新运行要跳过的 id：每日运行跳过所有处理过的，临时运行只跳过保留过的条目。"""
     out: set[str] = set()
     for run_dir, run in pool.runs():
         if run.get("status") != STATUS_FINALIZED:
@@ -144,7 +143,7 @@ def compute_windows(
     hours: float | None = None,
     until: datetime | None = None,
 ) -> tuple[dict[str, Window], Window]:
-    """Per-source windows (references/schema.md) and the overall window for `manual` candidates."""
+    """各来源的时间窗（见 references/schema.md），以及 `manual` 候选用的总时间窗。"""
     end = until or now
     first = timedelta(hours=float(window_cfg["first_run_hours"]))
     overlap = timedelta(hours=float(window_cfg["overlap_hours"]))
@@ -164,7 +163,7 @@ def compute_windows(
             start = end - first
         else:
             start = max(cov[src.id] - overlap, end - longest)
-            if start >= end:  # the clock moved backwards since the last run
+            if start >= end:  # 上次运行之后系统时钟被往回调了
                 start = end - overlap
         windows[src.id] = Window(start, end)
     if windows:
@@ -184,7 +183,7 @@ def new_run_id(now: datetime, runs_dir: Path) -> str:
 
 
 def item_relpath(item: dict[str, Any], slug_max: int) -> str:
-    """The item file's path under items/ (schema.md): <fetch day>/<publish day>.<slug>.<id>.json."""
+    """条目文件在 items/ 下的路径（见 schema.md）：<抓取日>/<发布日>.<slug>.<id>.json。"""
     fetched = from_iso(str(item["collected_at"])).strftime("%y%m%d")
     published = from_iso(str(item["published_at"])).strftime("%y%m%d")
     slug = slugify_title(str(item["title_zh"]), slug_max)
@@ -248,9 +247,9 @@ def commit_run(
     manifest: dict[str, Any],
     seen: list[tuple[str, str]],
 ) -> None:
-    """Items, then manifest, then seen.txt, then status: only the last step makes the run count,
-    so a crash mid-commit leaves an unfinalized run that rerunning `finalize` completes."""
-    # The .get shim: a run.json snapshot from before 2.1 lacks the key; 40 is the built-in default.
+    """依次写条目、manifest、seen.txt，最后改 status：只有最后一步才让这次运行生效，
+    所以提交中途崩溃只会留下一个未 finalize 的运行，重跑 `finalize` 即可补完。"""
+    # 用 .get 兼容：2.1 之前的 run.json 快照里没有这个键；40 是内置默认值。
     slug_max = int(run["settings"].get("item_slug_max_chars", 40))
     for item in items:
         _guard_overwrite(pool, item_relpath(item, slug_max), run["run_id"])

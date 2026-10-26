@@ -1,3 +1,3 @@
-"""news-viewer: serve the news pool to a browser for reading and marking."""
+"""news-viewer：把新闻池提供给浏览器，用来阅读和标记。"""
 
 __version__ = "1.0.0"

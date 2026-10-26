@@ -32,7 +32,7 @@ def test_a_new_database_is_migrated_once(tmp_path: Path) -> None:
     first = userdb.connect(path)
     assert _version(first) == latest
     first.close()
-    second = userdb.connect(path)  # reopening must not run the migrations again
+    second = userdb.connect(path)  # 重新打开时不能再跑一遍迁移
     assert _version(second) == latest
     second.close()
 
@@ -73,7 +73,7 @@ def test_collections(conn: sqlite3.Connection) -> None:
     with pytest.raises(ApiError):
         userdb.create_collection(conn, "  ", "", now=NOW)
     userdb.add_to_collection(conn, cid, ID, now=NOW)
-    userdb.add_to_collection(conn, cid, ID, now=LATER)  # idempotent
+    userdb.add_to_collection(conn, cid, ID, now=LATER)  # 幂等
     assert userdb.item_collections(conn, ID) == [cid]
     other = userdb.create_collection(conn, "芯片", "", now=NOW)
     with pytest.raises(Conflict):
@@ -84,7 +84,7 @@ def test_collections(conn: sqlite3.Connection) -> None:
     assert userdb.item_collections(conn, ID) == []
     userdb.add_to_collection(conn, cid, ID, now=NOW)
     userdb.delete_collection(conn, cid)
-    assert userdb.item_collections(conn, ID) == []  # ON DELETE CASCADE
+    assert userdb.item_collections(conn, ID) == []  # 由 ON DELETE CASCADE 级联删除
     with pytest.raises(NotFound):
         userdb.delete_collection(conn, cid)
     with pytest.raises(NotFound):

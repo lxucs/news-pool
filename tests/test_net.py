@@ -61,7 +61,7 @@ def test_unknown_charset_falls_back_to_utf8() -> None:
 
 
 def test_non_text_codec_falls_back_to_utf8() -> None:
-    # codecs.lookup accepts base64/rot13, but they cannot decode a text body
+    # codecs.lookup 认得 base64/rot13，但它们解码不了文本正文
     assert detect_charset(b"x", "text/plain; charset=base64") == "utf-8"
     assert detect_charset(b"x", "text/plain; charset=rot13") == "utf-8"
 

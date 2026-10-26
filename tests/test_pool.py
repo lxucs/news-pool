@@ -144,7 +144,7 @@ def test_manifest_orders_by_importance_then_newest() -> None:
     files = {e["id"]: e["file"] for e in manifest["items"]}
     assert files["a"] == "261021/261021.a.a.json"
     assert files["b"] == "261021/261021.b.b.json"
-    assert files["c"] == "261021/261020.c.c.json"  # published 9h before NOW: 2026-10-20 23:00
+    assert files["c"] == "261021/261020.c.c.json"  # 发布于 NOW 之前 9 小时：2026-10-20 23:00
     assert manifest["sources"]["hn"]["ok"] is False
     assert manifest["warnings"] == ["w"]
 

@@ -36,7 +36,7 @@ def info(pool: Path, instance: str = "one", port: int = 8765) -> ServerInfo:
 
 
 def answering(pool: Path, instance: str) -> Any:
-    """A health probe on which exactly one live server (`instance`) answers."""
+    """一个健康检查函数：恰好有一个存活的服务（`instance`）应答。"""
 
     def probe(port: int) -> dict[str, Any] | None:
         return {"app": "news-viewer", "instance": instance, "pool": str(pool)}
@@ -100,7 +100,7 @@ def test_up_starts_a_server_when_the_recorded_one_is_gone(tmp_path: Path) -> Non
 
     def spawn(pool: Path, port: int) -> FakeChild:
         assert port == 8765
-        write_server_info(pool, fresh)  # what the child does once it is serving
+        write_server_info(pool, fresh)  # 子进程开始提供服务后会做的事
         return FakeChild()
 
     t = FakeTime()
@@ -149,7 +149,7 @@ def test_down(tmp_path: Path) -> None:
     assert down(tmp_path, probe=silent) is False
     write_server_info(tmp_path, info(tmp_path))
     assert down(tmp_path, probe=silent) is False
-    assert read_server_info(tmp_path) is None  # the stale record is cleaned up
+    assert read_server_info(tmp_path) is None  # 过期的记录被清理掉
 
     write_server_info(tmp_path, info(tmp_path))
     alive = [True]
@@ -190,10 +190,10 @@ def test_watch_idle_keeps_a_busy_server_and_returns_when_it_ends() -> None:
         ticks.append(seconds)
         t.now += seconds
         activity.touch()
-        return len(ticks) >= 5  # the server ended on its own
+        return len(ticks) >= 5  # 服务自己结束了
 
     watch_idle(activity, 600, lambda: stops.append(True), wait)
-    assert stops == [] and ticks == [30.0] * 5  # min(30 s, idle / 4)
+    assert stops == [] and ticks == [30.0] * 5  # 每次等 min(30 s, idle / 4)
 
 
 def test_serve_records_the_server_while_it_runs(

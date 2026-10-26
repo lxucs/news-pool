@@ -1,4 +1,4 @@
-"""Argument parsing, dispatch, and the exit-code contract (SKILL.md documents each code)."""
+"""参数解析、命令分发和退出码约定（各退出码的含义见 SKILL.md）。"""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ COMMAND_MODULES = (runs, fetch, prepare, validate, leads, finalize, status)
 
 
 class NdParser(argparse.ArgumentParser):
-    """argparse exits 2 on bad usage; the contract says 1, so raise instead."""
+    """argparse 遇到用法错误时以 2 退出，而约定是 1，所以改为抛异常。"""
 
     def error(self, message: str) -> NoReturn:
         raise UsageError(f"{self.prog}: {message}")
@@ -49,7 +49,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "(a sandboxed harness may block it)"
         )
         return UsageError.exit_code
-    except Exception as exc:  # noqa: BLE001 - last resort; exit 5 tells the agent to report
+    except Exception as exc:  # noqa: BLE001 - 兜底：退出码 5 让 agent 把错误报告给用户
         return _internal_error(exc, args)
 
 

@@ -1,105 +1,76 @@
-# Contributing
+# 贡献指南
 
-Code conventions and the rules that keep the architecture intact. Working agreements for AI
-coding agents — environment, testing, git — are in [`../AGENTS.md`](../AGENTS.md).
+代码规范，以及让架构不走样的规则。给 AI 编码 agent 的工作约定（环境、测试、git）在 [`../AGENTS.md`](../AGENTS.md)。
 
-## Code conventions
+## 代码规范
 
-- Full type annotations; `pyright` must be clean. Every module starts with
-  `from __future__ import annotations`.
-- `ruff format` and `ruff check` before calling work done.
-- Skill code is **Python 3.9 compatible**: no `match`, no `zip(strict=)`, no
-  `dataclass(slots=/kw_only=)`, no `X | Y` outside annotations, no 3.10+ standard-library APIs.
-- Match the comment density of surrounding code. Comment *why*, not *what*.
-- Prefer small, focused modules. Past ~400 lines *of code* a module is usually doing two things.
+- 类型注解写全；`pyright` 必须零报错。每个模块都以 `from __future__ import annotations` 开头。
+- 宣布完成之前跑 `ruff format` 和 `ruff check`。
+- skill 代码**兼容 Python 3.9**：不用 `match`，不用 `zip(strict=)`，不用 `dataclass(slots=/kw_only=)`，注解以外不用 `X | Y`，不用 3.10 及以上版本才有的标准库 API。
+- 注释、docstring 和文档写中文，和 `SKILL.md` 一致；标识符用英文。ruff 按显示宽度计算行长，一个汉字算 2 列，中文注释按 100 列换行（中文没有空格，超长的行 ruff 不一定报出来）。Markdown 里的中文段落不要硬换行：换行会在汉字之间渲染出空格。
+- 注释的密度跟周围的代码保持一致。注释写*为什么*，不写*做了什么*。
+- 模块宜小而专。一个模块的代码超过约 400 行，通常说明它在做两件事。
 
-## Architecture rules
+## 架构规则
 
-- **Scripts decide nothing semantic.** Relevance, grouping, scores and summaries are the agent's,
-  written to files the scripts validate. Never add an LLM API call.
-- **The pool only grows.** Item files and finalized runs are written once, through
-  `files.write_*_atomic`, and a finalized run is never edited. No shared mutable index: derive
-  views from finalized manifests.
-- **One home per rule.** In news-digest: URL / time / timezone normalization lives in
-  `normalize.py`; HTTP in `net.py`; payload parsing in `adapters.py` (pure: text in, rows out);
-  the pool contract (runs, coverage, seen, windows, commit) in `pool.py`. In news-viewer: reading
-  the pool in `poolread.py`; the item index and every list/search query in `index.py`; the user's
-  data and its migrations in `userdb.py`; routing and request checks in `api.py` (a pure
-  function, tested without sockets); the server process in `lifecycle.py`.
-- **The viewer only reads the pool.** It writes nothing outside `<pool>/viewer/` and never
-  imports `newsdigest`.
-- **A news-digest command is `register(sub)` plus `cmd_*(args) -> int`** in its module, listed in
-  `cli.COMMAND_MODULES`. news-viewer's four commands (`up`, `serve`, `down`, `status`) live in its
-  `cli.py`.
-- **Failures map to exit codes** (`errors.py`): raise `UsageError` (1), `ValidationFailed` (3) or
-  `AllSourcesFailed` (4). `cli.main` maps a `PermissionError` (an unwritable pool) to 1; anything
-  else becomes 5, with a traceback in `nd-error.log`. `SKILL.md`
-  tells the agent what to do for each code, so a new kind of failure uses an existing code or
-  updates `SKILL.md`. news-viewer uses 1 (`UsageError`) and 5 (`StartFailed`, internal errors).
+- **脚本不做任何语义判断。** 相关性、分组、打分和摘要都归 agent：agent 写进文件，脚本校验。永远不要加大模型 API 调用。
+- **新闻池只增不改。** 条目文件和已 finalize 的运行只写一次，一律经由 `files.write_*_atomic`；已 finalize 的运行永远不再修改。不要维护共享的可变索引：视图从已 finalize 的 manifest 推导出来。
+- **每条规则只有一个归属。** news-digest 里：URL、时间和时区的规范化在 `normalize.py`；HTTP 在 `net.py`；响应解析在 `adapters.py`（纯函数：文本进，行出）；新闻池的约定（运行、覆盖范围、seen、时间窗、提交）在 `pool.py`。news-viewer 里：读新闻池在 `poolread.py`；条目索引和所有列表、搜索查询在 `index.py`；用户数据及其迁移在 `userdb.py`；路由和请求检查在 `api.py`（纯函数，测试不需要 socket）；服务进程在 `lifecycle.py`。
+- **阅读器只读新闻池。** 它只在 `<pool>/viewer/` 里写东西，也从不 import `newsdigest`。
+- **news-digest 的一个命令 = 所在模块里的 `register(sub)` 加 `cmd_*(args) -> int`**，并列入 `cli.COMMAND_MODULES`。news-viewer 的四个命令（`up`、`serve`、`down`、`status`）都在它的 `cli.py` 里。
+- **失败映射到退出码**（`errors.py`）：抛出 `UsageError`（1）、`ValidationFailed`（3）或 `AllSourcesFailed`（4）。`cli.main` 把 `PermissionError`（新闻池不可写）映射为 1；其他异常一律是 5，traceback 写进 `nd-error.log`。`SKILL.md` 告诉 agent 每个退出码该怎么处理，所以新的失败类型要么沿用已有的退出码，要么同时更新 `SKILL.md`。news-viewer 用 1（`UsageError`）和 5（`StartFailed`、内部错误）。
 
-## Schema changes
+## 改格式
 
-The pool format is a contract with the viewer. When a field of an item, manifest, `run.json`,
-`triage.json` or `enriched-*.jsonl` changes:
+新闻池的格式是和阅读器之间的约定。条目、manifest、`run.json`、`triage.json` 或 `enriched-*.jsonl` 的字段有变化时：
 
-1. bump `SCHEMA_VERSION` in `newsdigest/__init__.py` if existing readers would break;
-2. update `news-digest/references/schema.md`, and `SKILL.md` if the agent writes that field;
-3. update the viewer in the same change (`news-viewer/scripts/newsviewer/poolread.py`,
-   `index.py`) and keep the contract test in `tests/test_viewer_index.py` passing.
+1. 如果现有的读取方会因此出错，提升 `newsdigest/__init__.py` 里的 `SCHEMA_VERSION`；
+2. 更新 `news-digest/references/schema.md`；如果这个字段由 agent 来写，也更新 `SKILL.md`；
+3. 在同一次改动里更新阅读器（`news-viewer/scripts/newsviewer/poolread.py`、`index.py`），并保证 `tests/test_viewer_index.py` 里的契约测试通过。
 
-## Configuration
+## 配置
 
-### No hardcoded values
+### 不写死数值
 
-Anything a user might tune comes from `news-digest/references/defaults.json` (overridable in a
-profile), not a literal mid-function: windows, limits, timeouts, retries, truncation lengths,
-thresholds, user agents.
+用户可能想调的值都从 `news-digest/references/defaults.json` 读取（可以在 profile 里覆盖），不要在函数中间写字面量：时间窗、上限、超时、重试、截断长度、阈值、User-Agent。
 
-The viewer's tunables are in `news-viewer/references/defaults.json`, overridable in
-`<pool>/viewer/config.json`; the page gets its own (`heartbeat_s`, `page_size`) from `/api/meta`.
+阅读器的可调参数在 `news-viewer/references/defaults.json`，可以在 `<pool>/viewer/config.json` 里覆盖；页面自己用的参数（`heartbeat_s`、`page_size`）从 `/api/meta` 获取。
 
 ```python
-# Wrong — buried, undiscoverable, unchangeable without an edit
+# 错：埋在代码里，找不到，不改代码就改不了
 snippet = snippet[:800]
 
-# Right
+# 对
 snippet = snippet[: int(settings["snippet_max_chars"])]
 ```
 
-A literal is fine for a genuine protocol or schema constant: an API endpoint and its documented
-maxima, a schema enum (`REGIONS`), the id length. Make it a named module constant, with a comment
-when it is not obvious which kind it is.
+真正的协议常量或格式常量可以写成字面量：API 端点及其文档规定的上限、格式里的枚举（`REGIONS`）、id 的长度。把它定义成有名字的模块常量；看不出属于哪一类时，加一行注释说明。
 
-### Nothing sensitive is committed
+### 不提交敏感信息
 
-See AGENTS.md, "Configuration hygiene". In docs and examples use obvious placeholders —
-`/path/to/pool`, `https://api.example.com` — never a value copied from a running environment.
+见 AGENTS.md 的「配置卫生」。文档和示例里用一看就是占位的值——`/path/to/pool`、`https://api.example.com`——永远不要用从运行环境里复制来的值。
 
-## Output
+## 输出
 
-The scripts are command-line tools whose output an agent reads, so the output *is* the interface:
+脚本是命令行工具，读输出的是 agent，所以输出*就是*接口：
 
-- `console.say` for progress (`[nd] …` / `[nv] …` on stdout), `console.warn` for non-blocking notes,
-  `console.error` (stderr) for failures. No bare `print` elsewhere, and no `logging` setup.
-- One line per fact. A successful step ends with `next: …` naming the exact next command.
-- An error says what is wrong, where (`file:line`, id, field), and what is expected.
-- **Nothing sensitive is printed.** Never print a credential, a cookie or a private endpoint; if
-  one ever becomes configurable, print the environment variable's *name*, not its value.
+- 进度用 `console.say`（stdout 上的 `[nd] …` / `[nv] …`），不阻断流程的提示用 `console.warn`，失败用 `console.error`（stderr）。其他地方不要裸用 `print`，也不要配置 `logging`。
+- 一行一个事实。成功的步骤以 `next: …` 结尾，写出下一条要运行的确切命令。
+- 错误要说明哪里不对、在哪里（`file:line`、id、字段）、期望的是什么。
+- 输出用英文：`SKILL.md` 原样引用了其中一些行（`next:`、`no new candidates`、`[nv] url:` 等），改输出时同步改 `SKILL.md`。
+- **不打印任何敏感信息。** 永远不要打印凭据、cookie 或私有端点；如果将来它们变得可配置，打印环境变量的*名字*，不打印值。
 
-## The viewer's page
+## 阅读器的页面
 
-- No build step: plain HTML, CSS and native JS modules; Vue is the vendored ES-module build
-  (`static/vendor/README.md` says how to upgrade it).
-- Fetched text is untrusted: never `v-html` or `innerHTML`; links and images only through
-  `safeUrl` (http/https), opened with `rel="noopener noreferrer"`.
-- Client tunables come from `/api/meta`, not literals.
-- No `URLSearchParams` and no HTML entities in templates: the JS check runs under a bare
-  JavaScriptCore shell, with no browser APIs and no DOM.
+- 没有构建步骤：纯 HTML、CSS 和原生 JS 模块；Vue 用内置的 ES 模块构建（`static/vendor/README.md` 说明怎么升级）。
+- 界面文字用中文。
+- 抓来的文本不可信：永远不用 `v-html` 或 `innerHTML`；链接和图片一律经过 `safeUrl`（只允许 http 和 https），用 `rel="noopener noreferrer"` 打开。
+- 页面的可调参数来自 `/api/meta`，不写字面量。
+- 不用 `URLSearchParams`，模板里不用 HTML 实体：JS 检查跑在裸的 JavaScriptCore shell 里，没有浏览器 API，也没有 DOM。
 
 ## Python 3.9
 
-The skill must run on the macOS system Python. Before finishing a change to skill code, run the
-suite on it, from a throwaway environment outside the repository:
+skill 必须能在 macOS 自带的 Python 上运行。改完 skill 代码、收尾之前，在它上面跑一遍测试，用仓库之外的一次性环境：
 
 ```bash
 uv venv /tmp/nd-py39 --python /usr/bin/python3
@@ -107,7 +78,7 @@ uv pip install --python /tmp/nd-py39/bin/python pytest
 /tmp/nd-py39/bin/python -m pytest -q -p no:cacheprovider
 ```
 
-## Checks
+## 检查
 
 ```bash
 uv run ruff check . && uv run ruff format --check .
@@ -115,4 +86,4 @@ uv run pyright
 uv run pytest
 ```
 
-Run them and read the output before claiming work is done.
+运行它们并读完输出，再宣布完成。

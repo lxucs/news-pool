@@ -89,9 +89,9 @@ def test_ordinary_article_page_uses_meta_tags() -> None:
 
 
 def test_qbitai_capture_yields_its_visible_date_and_time() -> None:
-    # The capture keeps `<span class="date">` and `<span class="time">` (fixtures/README.md); the
-    # page has no machine-readable publish time, and a related-article list further down carries
-    # other `class="time"` spans holding bare dates.
+    # 从线上抓取的页面保留了 `<span class="date">` 和 `<span class="time">`
+    # （见 fixtures/README.md）；页面没有机器可读的发布时间，而下方的相关文章列表里
+    # 还有别的 `class="time"` span，里面只有日期。
     page = parse_article_page(fixture_text("article_qbitai.html"), "https://www.qbitai.com/x", CST)
     assert page["published_at"] == "2026-10-21T10:37:39+08:00"
 
@@ -100,7 +100,7 @@ def _page(body: str) -> str:
     return f"<html><head><title>T</title></head><body>{body}</body></html>"
 
 
-# Visible-date fallback. The first shape is the real qbitai markup; the others are hand-written.
+# 页面可见日期的兜底解析。第一种是 qbitai 的真实标记，其余是手写的。
 @pytest.mark.parametrize(
     ("body", "expected"),
     [
@@ -115,12 +115,12 @@ def _page(body: str) -> str:
         ('<div class="post-date">2026/10/05</div>', "2026-10-05T00:00:00+08:00"),
         ('<p class="meta-date">发布于 2026年10月5日</p>', "2026-10-05T00:00:00+08:00"),
         ('<i class="date">2026年1月5日</i><i class="time">9:05</i>', "2026-01-05T09:05:00+08:00"),
-        # the label comes first and holds no date: the next date element is the one
+        # 标签在前且不含日期：取后面的那个日期元素
         (
             '<span class="date-label">发布时间</span><span class="date"><b>2026-10-21</b></span>',
             "2026-10-21T00:00:00+08:00",
         ),
-        # a time element far below the date belongs to something else
+        # 离日期很远的时间元素属于别的内容
         (
             '<span class="date">2026-10-21</span>'
             + "<p>filler text</p>" * 40
@@ -156,9 +156,9 @@ def test_machine_readable_time_wins_over_the_visible_date() -> None:
     "body",
     [
         "<p>no date anywhere</p>",
-        '<span class="date">昨天</span><span class="time">10:37</span>',  # a time alone is no date
-        '<span class="time">2024-03-12</span>',  # a date in a time element only
-        '<span class="date">2026-13-45</span>',  # looks like a date, is not one
+        '<span class="date">昨天</span><span class="time">10:37</span>',  # 只有时间不算日期
+        '<span class="time">2024-03-12</span>',  # 日期只出现在时间元素里
+        '<span class="date">2026-13-45</span>',  # 看着像日期，其实不是
     ],
 )
 def test_article_page_without_a_date_has_no_publish_time(body: str) -> None:
@@ -166,8 +166,8 @@ def test_article_page_without_a_date_has_no_publish_time(body: str) -> None:
     assert page["published_at"] == ""
 
 
-# Publish-time markup commonly found on ordinary article pages. These pages are hand-written
-# minimal documents using the real markup shapes (no capture of a page carrying them is kept).
+# 普通文章页上常见的发布时间标记。这些页面是按真实标记形态手写的最小文档
+# （没有保留带这些标记的抓取页面）。
 @pytest.mark.parametrize(
     "head",
     [
@@ -201,7 +201,7 @@ def test_captcha_page_is_recognised() -> None:
     assert not is_captcha_page("https://www.qbitai.com/x", fixture_text("article_qbitai.html"))
 
 
-# Negative cases: these are what a block page or a changed API looks like to the parser.
+# 反例：遇到拦截页或接口变了时，解析器看到的就是这些内容。
 @pytest.mark.parametrize("text", ["<html><body>blocked</body></html>", "plain text, not XML"])
 def test_feed_rejects_non_feeds(text: str) -> None:
     with pytest.raises(ParseError):

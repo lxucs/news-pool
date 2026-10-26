@@ -26,7 +26,7 @@ def test_only_finalized_runs_are_read(tmp_path: Path) -> None:
     assert run.run_id == "20261021-080000"
     assert run.kind == "daily" and run.created_at == CREATED
     assert [e["id"] for e in run.entries] == [ID]
-    assert poolread.run_dirs(tmp_path) == [done, started]  # run ids sort chronologically
+    assert poolread.run_dirs(tmp_path) == [done, started]  # run id 按时间先后排序
 
 
 def test_items_are_found_by_file_then_by_id(tmp_path: Path) -> None:
@@ -50,11 +50,11 @@ def test_missing_escaping_or_foreign_item_files_give_none(
     escaping = {**entry, "file": "../runs/20261021-080000/run.json"}
     assert poolread.load_item(tmp_path, escaping) is None
     assert "outside items/" in capsys.readouterr().out
-    (tmp_path / "items").mkdir(exist_ok=True)  # no item file was written for this run
+    (tmp_path / "items").mkdir(exist_ok=True)  # 这个运行没有写任何条目文件
     (tmp_path / "items" / "x.json").write_text(
         json.dumps(item_doc(OTHER, "别的")), encoding="utf-8"
     )
-    assert poolread.load_item(tmp_path, {**entry, "file": "x.json"}) is None  # id mismatch
+    assert poolread.load_item(tmp_path, {**entry, "file": "x.json"}) is None  # id 对不上
 
 
 def test_a_broken_manifest_is_skipped_with_a_warning(

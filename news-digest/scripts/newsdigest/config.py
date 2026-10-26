@@ -1,4 +1,4 @@
-"""Settings (defaults.json deep-merged with the profile) and the resource-file loaders."""
+"""配置（defaults.json 与 profile 深度合并的结果），以及各资源文件的加载函数。"""
 
 from __future__ import annotations
 
@@ -21,13 +21,13 @@ TIERS_FILE = "source_tiers.json"
 CATEGORIES_FILE = "categories.json"
 RESOURCE_FILES = (FEEDS_FILE, TAGS_FILE, TIERS_FILE, CATEGORIES_FILE)
 
-# Words the CLI gives meaning to; a feed may not use one as its id.
+# 命令行赋予了特殊含义的词；订阅源不能用它们作 id。
 RESERVED_SOURCE_IDS = frozenset({"rss", "none", "wscn", "gnews", "hn", "gdelt", "links", "manual"})
 _FEED_ID_RE = re.compile(r"[a-z0-9_-]+")
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """Nested objects merge; anything else (lists included) is replaced. `_`-keys are comments."""
+    """嵌套对象逐层合并，其余值（包括列表）直接替换。以 `_` 开头的键是注释。"""
     out = {k: v for k, v in base.items() if not k.startswith("_")}
     for key, value in override.items():
         if key.startswith("_"):
@@ -79,7 +79,7 @@ def _kind(value: object) -> str:
 
 
 def _type_problems(defaults: dict[str, Any], merged: dict[str, Any], prefix: str = "") -> list[str]:
-    """Each key present in defaults.json must keep its JSON kind (recursing into objects)."""
+    """defaults.json 里有的键必须保持原来的 JSON 类型（对象逐层递归检查）。"""
     problems: list[str] = []
     for key, default in defaults.items():
         if key.startswith("_") or key not in merged:
@@ -117,7 +117,7 @@ def _str_list(value: object) -> bool:
 
 
 def resource_path(profile_dir: Path, filename: str) -> Path:
-    """The profile's copy of a resource file if it has one, else the skill's built-in one."""
+    """profile 里有这个资源文件就用 profile 的，否则用 skill 内置的。"""
     own = profile_dir / filename
     return own if own.exists() else REFERENCES_DIR / filename
 

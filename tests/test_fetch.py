@@ -25,7 +25,7 @@ def _clock(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def fake_http(routes: Routes, calls: list[str]) -> Callable[..., Response]:
-    """Answer by URL prefix with fixture bytes, or raise the given exception."""
+    """按 URL 前缀返回 fixture 的字节内容，或抛出给定的异常。"""
 
     def http_get(url: str, http_cfg: dict[str, Any], user_agent: str | None = None) -> Response:
         calls.append(url)
@@ -64,7 +64,7 @@ def test_fetch_writes_candidates_and_records_failures(
     assert {r["source"] for r in _rows(run_dir / "candidates" / "qbitai.jsonl")} == {"量子位"}
     assert _rows(run_dir / "candidates" / "aiera.jsonl") == []
     hn_calls = [c for c in calls if "hn.algolia.com" in c]
-    assert len(hn_calls) == 3  # one request per profile query: synonyms are not ANDed
+    assert len(hn_calls) == 3  # profile 的每条 query 单独请求：同义词之间不做 AND
     assert all("created_at_i%3E" in c for c in hn_calls)
 
 
@@ -87,7 +87,7 @@ def test_partial_search_failure_keeps_rows_but_does_not_count_as_ok(
     ok = fake_http({"https://hn.algolia.com/": fixture_bytes("hn_search.json")}, calls)
 
     def flaky(url: str, http_cfg: dict[str, Any], user_agent: str | None = None) -> Response:
-        if len(calls) == 1:  # the second query fails
+        if len(calls) == 1:  # 第二条 query 失败
             calls.append(url)
             raise FetchError("HTTP 503")
         return ok(url, http_cfg, user_agent)
@@ -128,7 +128,7 @@ def test_links_become_candidates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 def test_link_with_a_visible_date_reaches_triage_input(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # The real qbitai capture: its only publish time is the visible date and time spans.
+    # 从线上抓取的真实 qbitai 页面：唯一的发布时间就是页面上可见的日期和时间 span。
     run_dir = started_run(tmp_path / "p", "--only", "none", "--focus", "收录这些链接")
     links = tmp_path / "links.txt"
     links.write_text("https://www.qbitai.com/2026/10/x.html\n", encoding="utf-8")

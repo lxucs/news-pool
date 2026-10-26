@@ -1,4 +1,4 @@
-"""leads: a page description for kept primaries with little text; writes enrich_input.json."""
+"""leads：为文本太少的保留 primary 抓取页面描述；写出 enrich_input.json。"""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def register(sub: argparse._SubParsersAction) -> None:
 def cmd_leads(args: argparse.Namespace) -> int:
     ctx = load_context(args.run)
     require_open(ctx.run)
-    triage = require_valid_triage(ctx)  # no tokens get spent enriching a bad triage
+    triage = require_valid_triage(ctx)  # 免得在有错的 triage 上白花 token 写摘要
     settings = ctx.run["settings"]
     cfg = settings["leads"]
     tz = parse_tz(settings["tz"])
@@ -93,7 +93,7 @@ def _lead(
         resp = http_get(record["url"], http, user_agent=http["article_user_agent"])
     except FetchError:
         return record["id"], nothing
-    if domain_of(resp.url) == GOOGLE_NEWS_HOST:  # still on Google's redirect page
+    if domain_of(resp.url) == GOOGLE_NEWS_HOST:  # 还停在 Google 的跳转页上
         return record["id"], nothing
     page = parse_article_page(resp.text, resp.url, tz)
     resolved = resp.url if domain_of(record["url"]) == GOOGLE_NEWS_HOST else ""

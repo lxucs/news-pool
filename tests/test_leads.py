@@ -59,8 +59,8 @@ def test_thin_primaries_get_page_descriptions(
     run_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     run = load_run(run_dir)
-    run["settings"]["leads"]["min_snippet_chars"] = 10_000  # every primary counts as thin
-    run["settings"]["leads"]["max"] = 2  # only the two most important are fetched
+    run["settings"]["leads"]["min_snippet_chars"] = 10_000  # 每个 primary 都算素材太少
+    run["settings"]["leads"]["max"] = 2  # 只抓取最重要的两条
     save_run(run_dir, run)
     reuters, techcrunch = id_for(run_dir, "reuters.com"), id_for(run_dir, "techcrunch.com")
     calls: list[str] = []

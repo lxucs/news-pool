@@ -1,8 +1,7 @@
-"""The server's life: serve (foreground), up (start or reuse, detached), down, the idle watchdog.
+"""服务的生命周期：serve（前台）、up（在后台启动，或复用已有的服务）、down、空闲看门狗线程。
 
-<pool>/viewer/server.json records the running server. A health probe that answers with the
-same `instance` proves the server is ours and alive. Nothing here kills by pid: a reused pid
-could belong to anything."""
+<pool>/viewer/server.json 记录正在运行的服务。健康检查回复的 `instance` 与记录相同，就证明服务
+是我们的、而且还活着。这里从不按 pid 杀进程：被复用的 pid 可能属于任何进程。"""
 
 from __future__ import annotations
 
@@ -34,10 +33,10 @@ from .userdb import now_iso
 
 SERVER_FILE = "server.json"
 LOG_FILE = "server.log"
-PROBE_TIMEOUT_S = 2.0  # a local health check; anything slower is not a healthy server
-POLL_S = 0.1  # how often `up` and `down` look again while waiting
-DOWN_WAIT_S = 5.0  # how long `down` waits for the server to go
-WATCH_MAX_S = 30.0  # the idle watchdog wakes at least this often
+PROBE_TIMEOUT_S = 2.0  # 本机健康检查；比这更慢就不算健康的服务
+POLL_S = 0.1  # `up` 和 `down` 等待时每隔多久再看一次
+DOWN_WAIT_S = 5.0  # `down` 等服务退出的最长时间
+WATCH_MAX_S = 30.0  # 空闲看门狗线程至少隔这么久醒来一次
 
 
 @dataclass(frozen=True)
@@ -52,7 +51,7 @@ class ServerInfo:
 
 
 class Child(Protocol):
-    """What `up` needs of the spawned process (subprocess.Popen satisfies it)."""
+    """`up` 对启动的子进程的要求（subprocess.Popen 满足）。"""
 
     pid: int
 
@@ -76,7 +75,7 @@ def read_server_info(pool: Path) -> ServerInfo | None:
 
 
 def write_server_info(pool: Path, info: ServerInfo) -> None:
-    """Atomically, so `up` never reads half a file."""
+    """原子写入，`up` 永远不会读到半个文件。"""
     path = server_file(pool)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
@@ -91,7 +90,7 @@ def write_server_info(pool: Path, info: ServerInfo) -> None:
 
 
 def remove_server_info(pool: Path, instance: str) -> None:
-    """Remove server.json only if it still describes `instance` (a newer server may own it)."""
+    """只在 server.json 仍描述 `instance` 时才删除它（它可能已归更新的服务所有）。"""
     current = read_server_info(pool)
     if current is not None and current.instance == instance:
         with contextlib.suppress(FileNotFoundError):
@@ -99,12 +98,12 @@ def remove_server_info(pool: Path, instance: str) -> None:
 
 
 def _local_opener() -> urllib.request.OpenerDirector:
-    # Never route a localhost request through a proxy from the environment.
+    # localhost 请求绝不走环境变量里配置的代理。
     return urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def probe_health(port: int) -> dict[str, Any] | None:
-    """GET /api/health on localhost: the reply, or None if nothing sane answers."""
+    """在 localhost 上 GET /api/health：返回回复；没有正常的应答时返回 None。"""
     url = f"http://{HOST}:{port}/api/health"
     try:
         with _local_opener().open(url, timeout=PROBE_TIMEOUT_S) as reply:
@@ -121,7 +120,7 @@ def post_shutdown(port: int) -> None:
         method="POST",
         headers={"Content-Type": "application/json", WRITE_HEADER: "1"},
     )
-    with contextlib.suppress(OSError):  # the server may close before it answers
+    with contextlib.suppress(OSError):  # 服务可能在应答前就关闭了
         _local_opener().open(request, timeout=PROBE_TIMEOUT_S).close()
 
 
@@ -143,7 +142,7 @@ def running(
 
 
 def spawn_detached(pool: Path, port: int) -> subprocess.Popen[bytes]:
-    """`nv.py serve` in its own session, so the harness ending its command does not end it."""
+    """在独立的 session 里运行 `nv.py serve`，harness 结束它的命令时不会连带结束服务。"""
     log = log_file(pool)
     log.parent.mkdir(parents=True, exist_ok=True)
     argv = [sys.executable, str(NV_SCRIPT), "serve", "--pool", str(pool), "--port", str(port)]
@@ -176,7 +175,7 @@ def up(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
 ) -> tuple[ServerInfo, bool]:
-    """This pool's running server, starting one if needed: (info, reused)."""
+    """这个新闻池正在运行的服务，必要时启动一个：返回 (info, reused)。"""
     current = running(pool, probe)
     if current is not None:
         return current, True
@@ -185,7 +184,7 @@ def up(
     deadline = clock() + timeout_s
     while True:
         info = read_server_info(pool)
-        # A new instance, not the stale record; the pid can differ (Windows venv launchers).
+        # 要的是新实例，不是过期的记录；pid 可能不同（Windows 上的 venv 启动器）。
         if info is not None and info != stale and _is_alive(info, pool, probe):
             return info, False
         code = child.poll()
@@ -208,7 +207,7 @@ def down(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
 ) -> bool:
-    """Ask this pool's server to stop: False when none was running (a stale record is removed)."""
+    """请这个新闻池的服务停止：没有服务在运行时返回 False（过期的记录会被删除）。"""
     info = read_server_info(pool)
     if info is None:
         return False
@@ -225,9 +224,9 @@ def down(
 def watch_idle(
     activity: Activity, idle_s: float, stop: Callable[[], None], wait: Callable[[float], bool]
 ) -> None:
-    """Call stop() once nothing has been asked of the server for idle_s seconds.
+    """服务连续 idle_s 秒没有收到任何请求时，调用一次 stop()。
 
-    `wait(t)` sleeps up to t seconds and returns True when the server has already ended."""
+    `wait(t)` 最多睡 t 秒；服务已经结束时返回 True。"""
     interval = min(WATCH_MAX_S, idle_s / 4)
     while not wait(interval):
         if activity.idle_s() >= idle_s:
@@ -237,13 +236,13 @@ def watch_idle(
 
 
 def serve(pool: Path, settings: dict[str, Any], port: int) -> None:
-    """Index the pool, bind, record server.json, and serve until shut down."""
+    """为新闻池建索引、绑定端口、写 server.json，然后一直服务到被关闭。"""
     library = Library(pool, refresh_s=float(settings["refresh_s"]))
     httpd = make_server(port)
     instance = secrets.token_hex(8)
 
     def stop() -> None:
-        # shutdown() blocks until serve_forever returns, so never call it on a request thread.
+        # shutdown() 会阻塞到 serve_forever 返回为止，所以绝不能在处理请求的 thread 上调用。
         threading.Thread(target=httpd.shutdown, daemon=True).start()
 
     httpd.app = App(library, settings, port=httpd.port, instance=instance, on_shutdown=stop)

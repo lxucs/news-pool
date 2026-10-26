@@ -1,4 +1,4 @@
-"""Where the skill's own files are, and where the pool is."""
+"""skill 自身文件的位置，以及新闻池的位置。"""
 
 from __future__ import annotations
 
@@ -14,6 +14,6 @@ DEFAULT_POOL = "~/.news-pool"
 
 
 def resolve_pool(cli_value: str | None) -> Path:
-    """--pool, then $NEWS_POOL_DIR, then ~/.news-pool."""
+    """依次取 --pool、$NEWS_POOL_DIR、~/.news-pool。"""
     raw = cli_value or os.environ.get(POOL_ENV) or DEFAULT_POOL
     return Path(raw).expanduser().resolve()

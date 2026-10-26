@@ -19,7 +19,7 @@ ITEM = hex_id(0xA1)
 
 
 class FakeSocket:
-    """Just enough of a socket for BaseHTTPRequestHandler: one request in, the response out."""
+    """只实现 BaseHTTPRequestHandler 用得到的那部分 socket：读入一个请求，写出响应。"""
 
     def __init__(self, raw: bytes) -> None:
         self._raw = io.BytesIO(raw)

@@ -1,13 +1,13 @@
-// Application state and every action that talks to the API. Components read `store` and call
-// these functions; nothing else changes state.
+// 应用状态，以及所有与 API 交互的操作。组件读取 `store`、调用这里的函数；
+// 除此之外没有别的地方修改状态。
 import { reactive } from "./vendor/vue.esm-browser.prod.js";
 import { api, ServerGone } from "./api.js";
 import { emptyRoute, parseHash, toHash } from "./router.js";
 
-export const DAY_VIEWS = ["latest", "unread"]; // views grouped under day headers
+export const DAY_VIEWS = ["latest", "unread"]; // 按日期分组显示的视图
 const LIST_KEYS = ["view", "cid", "run", "q", "category", "tag", "source"];
 const TOAST_MS = 5000;
-const PREFETCH_ROWS = 5; // j near the end of the loaded rows fetches the next page
+const PREFETCH_ROWS = 5; // 用 j / k 选到已加载行的末尾附近时，加载下一页
 const THEME_KEY = "news-viewer-theme";
 
 export const store = reactive({
@@ -16,15 +16,15 @@ export const store = reactive({
   items: [],
   total: 0,
   loading: false,
-  current: null, // the open item: {item, missing, state, cids}
+  current: null, // 当前打开的条目：{item, missing, state, cids}
   serverDown: false,
   toast: null, // {text, undo, at}
-  menuOpen: false, // the reader's collections menu
-  drawerOpen: false, // the navigation drawer on narrow screens
+  menuOpen: false, // 阅读栏的收藏夹菜单
+  drawerOpen: false, // 窄屏下的导航抽屉
   helpOpen: false,
 });
 
-let listToken = 0; // a newer list request makes older responses stale
+let listToken = 0; // 一旦发出更新的列表请求，之前请求的响应就作废
 
 export function showToast(text, undo = null) {
   const at = Date.now();
@@ -96,7 +96,7 @@ async function openCurrent(id) {
   }
   try {
     const detail = await api.item(id);
-    if (store.route.item !== id) return; // the user moved on while it loaded
+    if (store.route.item !== id) return; // 加载期间用户已经切到别处
     store.current = detail;
     if (!detail.state.read_at) await setFlags({ read: true });
   } catch (err) {
@@ -197,7 +197,7 @@ export async function markDayRead(day) {
 }
 
 export async function saveNote(id, note) {
-  // Errors go to the caller: the note editor shows 保存失败 and keeps the text.
+  // 出错时交给调用方处理：笔记编辑器显示「保存失败」并保留文本。
   const state = await api.setNote(id, note);
   if (store.current && store.current.item.id === id) store.current.state = state;
   patchRow(id, state);
@@ -268,7 +268,7 @@ async function ping() {
 }
 
 export function startHeartbeat(seconds) {
-  // Only a visible page keeps the server alive; a forgotten background tab lets it go idle.
+  // 只有可见的页面才维持服务运行；忘在后台的标签页不算，服务会照常空闲退出。
   setInterval(() => {
     if (document.visibilityState === "visible") ping();
   }, seconds * 1000);

@@ -112,12 +112,12 @@ def test_error_output_is_capped_but_errors_json_is_complete(
     run = load_run(run_dir)
     run["settings"]["output"]["max_problems"] = 2
     save_run(run_dir, run)
-    write_triage(run_dir, {"events": [], "drop": []})  # all 5 ids missing
+    write_triage(run_dir, {"events": [], "drop": []})  # 5 个 id 全部缺失
     assert cli.main(["check", "--run", str(run_dir)]) == 3
     err_lines = [
         line for line in capsys.readouterr().err.splitlines() if line.startswith("[nd] error:")
     ]
-    assert len(err_lines) == 4  # 2 problems + "... and 3 more" + the summary
+    assert len(err_lines) == 4  # 2 条问题 + "... and 3 more" + 汇总行
     assert read_json_file(run_dir / "errors.json")["count"] == 5
 
 

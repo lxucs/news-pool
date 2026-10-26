@@ -1,4 +1,4 @@
-"""The source registry (built-in adapters + feeds.json) and per-run source selection."""
+"""来源注册表（内置 adapter 加 feeds.json），以及每次运行的来源选择。"""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ PROFILE_ORIGIN = f"the profile's `sources` ({PROFILE_CONFIG})"
 class Source:
     id: str
     name: str
-    kind: str  # KIND_FEED or KIND_SEARCH
-    adapter: str  # "rss", "wscn", "gnews", "hn" or "gdelt"
+    kind: str  # KIND_FEED 或 KIND_SEARCH
+    adapter: str  # "rss"、"wscn"、"gnews"、"hn" 或 "gdelt"
     url: str = ""
     enabled: bool = True
 
@@ -41,7 +41,7 @@ def build_registry(feeds: list[Feed]) -> dict[str, Source]:
 
 
 def parse_id_list(text: str | None) -> list[str] | None:
-    """`--only a,b` → ["a", "b"]; an absent flag → None."""
+    """`--only a,b` → ["a", "b"]；没给这个 flag → None。"""
     if text is None:
         return None
     return [part.strip() for part in text.split(",") if part.strip()]
@@ -57,7 +57,7 @@ def select_sources(
     skip: list[str] | None,
     registry: dict[str, Source],
 ) -> list[Source]:
-    """--only replaces the profile's list; --skip removes from whichever list applies."""
+    """--only 替换 profile 的列表；--skip 从实际生效的那个列表里去掉来源。"""
     if only is not None:
         ids = _expand(only, registry, explicit=True, origin="--only")
     else:

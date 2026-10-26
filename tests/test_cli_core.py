@@ -96,7 +96,7 @@ def test_use_utf8_leaves_streams_without_reconfigure_alone(
 ) -> None:
     monkeypatch.setattr(sys, "stdout", io.StringIO())
     monkeypatch.setattr(sys, "stderr", io.StringIO())
-    console.use_utf8()  # must not raise
+    console.use_utf8()  # 不能抛异常
 
 
 def test_skill_md_quotes_the_message_check_prints() -> None:

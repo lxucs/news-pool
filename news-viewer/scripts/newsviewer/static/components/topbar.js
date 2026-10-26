@@ -1,7 +1,7 @@
 import { navigate, store, toggleTheme } from "../store.js";
 import { runLabel } from "../util.js";
 
-const SEARCH_DELAY_MS = 300; // search once typing pauses this long
+const SEARCH_DELAY_MS = 300; // 停止输入这么久后搜索
 
 export default {
   name: "TopBar",

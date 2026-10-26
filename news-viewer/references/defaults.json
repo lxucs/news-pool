@@ -1,5 +1,5 @@
 {
-  "_comment": "Built-in defaults. <pool>/viewer/config.json overrides any key (same merge rule as news-digest). idle_minutes 0 = never stop by itself.",
+  "_comment": "内置默认值。<pool>/viewer/config.json 可以覆盖任何键（合并规则与 news-digest 相同）。idle_minutes 为 0 表示不自动退出。",
   "port": 8765,
   "idle_minutes": 120,
   "heartbeat_s": 60,

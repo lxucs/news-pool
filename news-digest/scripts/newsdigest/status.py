@@ -1,4 +1,4 @@
-"""status / abandon: where the pool stands, and what each unfinished run needs next."""
+"""status / abandon：新闻池的现状，以及每个未完成的运行下一步该做什么。"""
 
 from __future__ import annotations
 

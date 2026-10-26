@@ -1,4 +1,4 @@
-"""Output for the agent: short `[nv]` lines; errors on stderr."""
+"""给 agent 看的输出：简短的 `[nv]` 行；错误写到 stderr。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import sys
 
 
 def use_utf8() -> None:
-    """Chinese output must not crash a console whose encoding cannot hold it (Windows)."""
+    """控制台编码装不下中文时（Windows），中文输出也不能让程序崩溃。"""
     for stream in (sys.stdout, sys.stderr):
         encoding = (getattr(stream, "encoding", "") or "").lower().replace("-", "")
         reconfigure = getattr(stream, "reconfigure", None)

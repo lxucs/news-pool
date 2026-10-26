@@ -1,4 +1,4 @@
-"""Argument parsing, dispatch, and the exit-code contract (SKILL.md documents each code)."""
+"""参数解析、命令分发和退出码约定（每个退出码的含义见 SKILL.md）。"""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ POOL_HELP = "the news pool (default: $NEWS_POOL_DIR or ~/.news-pool)"
 
 
 class NvParser(argparse.ArgumentParser):
-    """argparse exits 2 on bad usage; the contract says 1, so raise instead."""
+    """argparse 遇到用法错误时以 2 退出；约定是 1，所以改为抛异常。"""
 
     def error(self, message: str) -> NoReturn:
         raise UsageError(f"{self.prog}: {message}")
@@ -106,7 +106,7 @@ def _port(value: int | None, settings: dict[str, Any]) -> int:
 
 
 def _run_fragment(pool: Path, run: str) -> str:
-    """`--run` takes a run id or a run directory; the URL opens the reader on that run."""
+    """`--run` 接受 run_id 或运行目录；URL 会让阅读器直接打开这次运行。"""
     run_id = Path(run).name
     if not (pool / "runs" / run_id / "run.json").is_file():
         raise UsageError(f"no run {run_id!r} in {pool}; `nd.py status` lists runs")
@@ -132,7 +132,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "(a sandboxed harness may block it)"
         )
         return UsageError.exit_code
-    except Exception as exc:  # noqa: BLE001 - last resort; exit 5 tells the agent to report
+    except Exception as exc:  # noqa: BLE001 - 兜底：退出码 5 让 agent 把错误报告给用户
         return _internal_error(exc, args)
 
 
@@ -141,7 +141,7 @@ def _internal_error(exc: Exception, args: argparse.Namespace | None) -> int:
     where = ""
     try:
         pool = resolve_pool(getattr(args, "pool", None))
-        if pool.is_dir():  # never create a pool just to hold a crash log
+        if pool.is_dir():  # 绝不为了存错误日志而创建新闻池
             log_path = pool / VIEWER_DIR / CRASH_LOG
             log_path.parent.mkdir(exist_ok=True)
             with log_path.open("a", encoding="utf-8") as fh:

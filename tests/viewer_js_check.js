@@ -1,6 +1,6 @@
-// Run by tests/test_viewer_static.py under macOS's JavaScriptCore shell (`jsc -m`). Loading this
-// module graph parses every viewer module and resolves every import name; the body compiles each
-// component's template and exercises the pure helpers. No DOM, no network.
+// 由 tests/test_viewer_static.py 在 macOS 的 JavaScriptCore shell（`jsc -m`）下运行。
+// 加载这个模块图，就会解析阅读器的每个模块、核对每个导入的名字；正文编译每个组件的模板，
+// 并调用纯函数工具做检查。不用 DOM，不联网。
 import { compile } from "../news-viewer/scripts/newsviewer/static/vendor/vue.esm-browser.prod.js";
 import AppRoot from "../news-viewer/scripts/newsviewer/static/components/app-root.js";
 import CollectionsMenu from "../news-viewer/scripts/newsviewer/static/components/collections-menu.js";
@@ -21,8 +21,8 @@ import {
   shortTime,
 } from "../news-viewer/scripts/newsviewer/static/util.js";
 
-// Vue decodes HTML entities through a DOM element whenever a template contains "&" (as in
-// `a && b`); jsc has no DOM, so stand in for the one call it makes.
+// 模板里只要有 "&"（如 `a && b`），Vue 就会借一个 DOM 元素来解码 HTML 实体；jsc 没有 DOM，
+// 所以替它模拟这唯一的一次调用。
 const decode = (s) => s.replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 globalThis.document = {
   createElement() {

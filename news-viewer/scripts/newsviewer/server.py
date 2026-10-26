@@ -1,5 +1,5 @@
-"""http.server glue: request bytes -> api.Request, api.Response -> bytes, plus the activity
-stamp the idle watchdog reads."""
+"""http.server 胶水层：请求字节 -> api.Request，api.Response -> 字节，
+外加供空闲看门狗线程读取的活动时间戳。"""
 
 from __future__ import annotations
 
@@ -16,11 +16,11 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from .api import SECURITY_HEADERS, App, Request, Response, json_response
 
 HOST = "127.0.0.1"
-MAX_BODY = 1_000_000  # bytes; a note is the largest thing the page sends
+MAX_BODY = 1_000_000  # 单位是字节；页面发送的最大内容是笔记
 
 
 class Activity:
-    """When the server last answered a request (monotonic seconds), for the idle watchdog."""
+    """服务上次应答请求的时间（monotonic 秒数），供空闲看门狗线程读取。"""
 
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self._clock = clock
@@ -38,7 +38,7 @@ class Activity:
 
 class ViewerHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
-    # On Windows SO_REUSEADDR lets a second server bind a port that is already in use.
+    # 在 Windows 上，SO_REUSEADDR 会让第二个服务也能绑定已被占用的端口。
     allow_reuse_address = sys.platform != "win32"
 
     def __init__(self, address: tuple[str, int]) -> None:
@@ -47,7 +47,7 @@ class ViewerHTTPServer(ThreadingHTTPServer):
         super().__init__(address, Handler)
 
     def server_bind(self) -> None:
-        # HTTPServer.server_bind also resolves a host name we never use; skip that lookup.
+        # HTTPServer.server_bind 还会解析一个我们用不到的主机名；跳过这次查询。
         socketserver.TCPServer.server_bind(self)
         self.server_name = HOST
         self.server_port = int(self.server_address[1])
@@ -80,7 +80,7 @@ class Handler(BaseHTTPRequestHandler):
         self._dispatch()
 
     def log_message(self, format: str, *args: Any) -> None:
-        """Quiet: request lines would only grow server.log."""
+        """不输出：请求行只会让 server.log 越来越大。"""
 
     def _dispatch(self) -> None:
         server = cast("ViewerHTTPServer", self.server)
@@ -95,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
             message = "request body too large" if length > MAX_BODY else "bad Content-Length"
             base = json_response({"error": message}, 413 if length > MAX_BODY else 400)
             response = Response(base.status, base.body, base.content_type, dict(SECURITY_HEADERS))
-            self.close_connection = True  # the body was not read
+            self.close_connection = True  # 请求体没有读取
         else:
             body = self.rfile.read(length) if length else b""
             parts = urlsplit(self.path)
@@ -113,7 +113,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(port: int) -> ViewerHTTPServer:
-    """Bind 127.0.0.1:<port>; if that port is taken, let the OS pick a free one."""
+    """绑定 127.0.0.1:<port>；该端口被占用时，让操作系统挑一个空闲端口。"""
     try:
         return ViewerHTTPServer((HOST, port))
     except OSError as exc:

@@ -8,7 +8,7 @@ const VIEWS = [
   { key: "notes", label: "✎ 有笔记" },
   { key: "hidden", label: "⊘ 已隐藏" },
 ];
-const RECENT_RUNS = 7; // runs listed before 更多
+const RECENT_RUNS = 7; // 「更多」之前列出的运行数
 const EMPTY_META = { runs: [], categories: [], collections: [], counts: {} };
 
 export default {

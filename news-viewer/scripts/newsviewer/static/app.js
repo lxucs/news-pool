@@ -1,4 +1,4 @@
-// Entry point: mount the app, follow the URL hash, keyboard shortcuts, the heartbeat.
+// 入口：挂载应用、跟随 URL hash、快捷键、心跳。
 import { createApp } from "./vendor/vue.esm-browser.prod.js";
 import AppRoot from "./components/app-root.js";
 import {
