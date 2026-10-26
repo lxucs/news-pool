@@ -15,8 +15,8 @@ package = false
 [tool.ruff]
 line-length = 100
 target-version = "py39"
-# Classify `newsdigest` as first-party for import sorting.
-src = ["news-digest/scripts"]
+# Classify `newsdigest` and `newsviewer` as first-party for import sorting.
+src = ["news-digest/scripts", "news-viewer/scripts"]
 extend-exclude = [
     "tests/fixtures",
     # Design docs quote plan code verbatim; ruff would reformat their Python blocks.
@@ -28,11 +28,11 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 
 [tool.pyright]
 pythonVersion = "3.9"
-include = ["news-digest/scripts", "tests"]
+include = ["news-digest/scripts", "news-viewer/scripts", "tests"]
 exclude = ["tests/fixtures"]
-extraPaths = ["news-digest/scripts", "tests"]
+extraPaths = ["news-digest/scripts", "news-viewer/scripts", "tests"]
 typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
-pythonpath = ["news-digest/scripts"]
+pythonpath = ["news-digest/scripts", "news-viewer/scripts"]
 testpaths = ["tests"]

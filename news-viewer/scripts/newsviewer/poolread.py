@@ -1,0 +1,128 @@
+"""Reading the pool as news-digest's schema.md promises: finalized runs, their manifests,
+the item files. The viewer never writes here; anything unreadable is skipped with a warning
+(it lands in server.log), never a crash."""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+from .console import warn
+
+ID_PATTERN = r"[0-9a-f]{12}"  # schema.md: the first 12 hex digits of sha1(canonical URL)
+RUN_FILE = "run.json"
+MANIFEST_FILE = "manifest.json"
+STATUS_FINALIZED = "finalized"
+
+_ID_RE = re.compile(ID_PATTERN)
+
+
+@dataclass(frozen=True)
+class Run:
+    run_id: str
+    kind: str
+    focus: str
+    finalized_at: str
+    created_at: str  # the run's start = its items' collected_at
+    entries: list[dict[str, Any]]  # manifest items[], in rank order
+
+
+def run_dirs(pool: Path) -> list[Path]:
+    """Run directories, oldest first (run ids are start timestamps)."""
+    runs = pool / "runs"
+    if not runs.is_dir():
+        return []
+    return sorted(p for p in runs.iterdir() if p.is_dir())
+
+
+def run_mtime(run_dir: Path) -> float | None:
+    try:
+        return (run_dir / RUN_FILE).stat().st_mtime
+    except OSError:
+        return None
+
+
+def read_finalized_run(run_dir: Path) -> Run | None:
+    """The run and its manifest entries, or None while it is not finalized (or is unreadable)."""
+    run = _read_object(run_dir / RUN_FILE)
+    if run is None or run.get("status") != STATUS_FINALIZED:
+        return None
+    manifest = _read_object(run_dir / MANIFEST_FILE)
+    if manifest is None:
+        return None
+    items = manifest.get("items")
+    entries = [
+        e
+        for e in (items if isinstance(items, list) else [])
+        if isinstance(e, dict) and isinstance(e.get("id"), str) and _ID_RE.fullmatch(e["id"])
+    ]
+    return Run(
+        run_id=run_dir.name,
+        kind=_text(manifest.get("kind")) or _text(run.get("kind")),
+        focus=_text(manifest.get("focus")),
+        finalized_at=_text(manifest.get("finalized_at")) or _text(run.get("finalized_at")),
+        created_at=_text(run.get("created_at")),
+        entries=entries,
+    )
+
+
+def load_item(pool: Path, entry: dict[str, Any]) -> dict[str, Any] | None:
+    """The item file a manifest entry points at: `file` (2.1), else items/<id>.json (2.0)."""
+    items_dir = (pool / "items").resolve()
+    rel = entry.get("file")
+    name = rel if isinstance(rel, str) and rel else f"{entry['id']}.json"
+    path = (items_dir / name).resolve()
+    if items_dir not in path.parents:
+        warn(f"manifest entry {entry['id']}: file {rel!r} is outside items/; ignored")
+        return None
+    if not path.is_file():
+        return None
+    doc = _read_object(path)
+    if doc is None:
+        return None
+    if doc.get("id") != entry["id"]:
+        warn(f"{path}: id {doc.get('id')!r} does not match the manifest's {entry['id']}; ignored")
+        return None
+    return doc
+
+
+def day_of(iso: str) -> str:
+    """%y%m%d of an ISO timestamp in its own offset (the item directory's name); '' if bad."""
+    parsed = _parse(iso)
+    return parsed.strftime("%y%m%d") if parsed is not None else ""
+
+
+def timestamp_of(iso: str) -> float:
+    parsed = _parse(iso)
+    return parsed.timestamp() if parsed is not None else 0.0
+
+
+def _parse(iso: str) -> datetime | None:
+    try:
+        # Python 3.9's fromisoformat does not accept a trailing Z.
+        return datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _read_object(path: Path) -> dict[str, Any] | None:
+    try:
+        with path.open(encoding="utf-8") as fh:
+            obj = json.load(fh)
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError) as exc:
+        warn(f"{path}: unreadable ({exc}); skipped")
+        return None
+    if not isinstance(obj, dict):
+        warn(f"{path}: not a JSON object; skipped")
+        return None
+    return obj
+
+
+def _text(value: object) -> str:
+    return value if isinstance(value, str) else ""

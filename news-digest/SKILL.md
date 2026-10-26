@@ -103,7 +103,7 @@ status → start → fetch → prepare → 你写 triage.json → check → lead
 
 ## 汇报
 
-`finalize` 输出条目数、事件数、类别分布、Top 5（标题、分数、链接）、失败的来源和其他提示。转述给用户，并告诉用户新闻池的位置。
+`finalize` 输出条目数、事件数、类别分布、Top 5（标题、分数、链接）、失败的来源和其他提示。转述给用户，并告诉用户新闻池的位置。如果也装了 news-viewer skill，问用户要不要打开阅读器看这次的结果（`nv.py up --run <run>` 会直接打开这次运行）。
 
 ## 配置
 

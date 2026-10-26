@@ -18,13 +18,15 @@
     seen.txt                   本次运行标记为已处理的 id
     errors.json                最近一次校验失败的完整错误列表（通过后删除）
     nd-error.log               脚本内部错误的 traceback（如果出过错）
+  viewer/                      阅读器（news-viewer）自己的数据：viewer.db（星标、已读、隐藏、笔记、收藏夹）等；skill 不读写
 ```
 
 ## 约定
 
 - **只增不改**：条目文件和已 finalize 的运行只写一次，全部原子写入。
 - **阅读器的索引 = 所有 `status: finalized` 的运行的 `manifest.json`**。没有被任何 finalized manifest 引用的条目文件是孤儿（来自中途失败的运行），忽略即可。
-- **`id`**：规范化 URL 的 sha1 前 12 位十六进制，永久稳定。阅读器的已读 / 收藏等标记以 id 为键，存在阅读器自己的文件里；skill 从不读写它。
+- 阅读器从 `run.json` 只读 `status` 和 `created_at`（= 条目的 `collected_at`）；`run.json` 的其他字段是 skill 内部的，随时可能变。
+- **`id`**：规范化 URL 的 sha1 前 12 位十六进制，永久稳定。阅读器的已读 / 收藏等标记以 id 为键，存在 `<pool>/viewer/` 里；skill 从不读写它。
 - **条目文件命名**：`items/<抓取日>/<发布日>.<slug>.<id>.json`。抓取日是 `collected_at` 的
   `%y%m%d`，发布日是 `published_at` 的 `%y%m%d`；slug 由 `title_zh` 生成：小写，保留字母数字与
   CJK 字符，其余连续字符折叠成一个 `-`，最长 `item_slug_max_chars`（默认 40）字，全空则用

@@ -8,16 +8,19 @@ file covers what the project is, environment, configuration hygiene, testing, an
 
 ## What this project is
 
-Two parts, joined by one on-disk contract:
+Two skills, joined by one on-disk contract:
 
 - **`news-digest/`** is an agent skill (`SKILL.md` plus scripts) that a general harness (Codex,
   WorkBuddy, Claude Code, …) runs, roughly daily. The scripts do the deterministic work: fetch,
   normalize, dedup, validate, write. The harness agent does the judgement and the writing (triage,
   summaries) by reading and writing JSON files. **The scripts never call an LLM API.**
-- **The viewer** (not built yet) reads the pool and lets the user read and mark items.
+- **`news-viewer/`** is the reader, also a skill. `nv.py up` starts (or reuses) a small server on
+  127.0.0.1 and prints a URL; the page reads the pool and lets the user search and mark items
+  (star, read, hide, notes, collections). It stops itself when idle. **It never imports
+  `newsdigest`**: the pool format is the only interface between the two.
 - **The pool** (`~/.news-pool` by default) is the contract between them. Item files and finalized
   run manifests are written once; the viewer's index is the set of finalized manifests; user marks
-  belong to the viewer. The format is specified in
+  belong to the viewer, in `<pool>/viewer/viewer.db`. The format is specified in
   [`news-digest/references/schema.md`](news-digest/references/schema.md).
 
 ## Layout
@@ -28,6 +31,11 @@ news-digest/            the skill; symlinked or copied into a harness's skills d
   scripts/nd.py         entry point; scripts/newsdigest/ is the implementation
   references/           defaults, feeds, categories, tags, tiers, and agent-facing rules
   examples/             example profile and sample candidates
+news-viewer/            the reader skill; installed the same way
+  SKILL.md              agent-facing instructions (Chinese)
+  scripts/nv.py         entry point; scripts/newsviewer/ is the implementation
+  scripts/newsviewer/static/   the page: HTML, CSS, JS modules, vendored Vue (no build step)
+  references/           defaults.json
 tests/                  offline suite; tests/fixtures/ holds captured real payloads
 docs/                   contributing guide
 ```
@@ -36,9 +44,12 @@ docs/                   contributing guide
 
 Two environments, on purpose:
 
-- **The skill runs on whatever Python the harness has: Python ≥ 3.9, standard library only.** A
-  third-party import anywhere under `news-digest/` is a bug — the skill must work when copied to a
-  machine with nothing installed. The macOS system Python (3.9) is the floor to check against.
+- **Both skills run on whatever Python the harness has: Python ≥ 3.9, standard library only.** A
+  third-party import anywhere under `news-digest/` or `news-viewer/` is a bug — a skill must work
+  when copied to a machine with nothing installed. The macOS system Python (3.9) is the floor to
+  check against. The one third-party file is the vendored Vue browser build in
+  `news-viewer/scripts/newsviewer/static/vendor/` (pinned and checksummed; see its README): the
+  browser loads it, nothing installs it.
 - **Development uses uv**, with the project-local `.venv` in the repository root:
 
 ```bash
@@ -79,6 +90,11 @@ payload from memory: that tests the parser against your assumptions. Agent-writt
 (`triage.json`, `enriched-*.jsonl`) are the exception — tests write those by hand, because an
 agent writes them by hand.
 
+Viewer tests drive the API (`api.App.handle`) and the HTTP handler in-process; no test binds or
+connects a socket. On macOS, `tests/test_viewer_static.py` also runs the page's JS modules under
+the system JavaScriptCore shell (`jsc`) to check syntax, imports and every template; elsewhere
+that one test is skipped. The page itself is checked by hand in a browser.
+
 Real end-to-end runs against live sources are **manual, done by the user**. Do not add tests that
 use the network, and do not ask the user for credentials to run the suite.
 
@@ -100,6 +116,7 @@ uv run pyright
 uv run pytest
 ```
 
-When skill code changed, also run the suite once on Python 3.9 (contributing.md, "Python 3.9").
+When code under either skill changed, also run the suite once on Python 3.9 (contributing.md,
+"Python 3.9").
 Run the commands and read the output — do not infer success from having written the code. If
 something fails, say so with the output. If part of the scope was skipped, say that explicitly.
