@@ -27,6 +27,7 @@ news-viewer/            阅读器 skill；安装方式相同
   references/           defaults.json
 tests/                  离线测试；tests/fixtures/ 存放从线上接口抓取的真实响应
 docs/                   贡献指南；images/ 放 README 用的截图
+.claude-plugin/         marketplace.json：Claude Code 插件市场的清单，npx skills 也读它
 .github/workflows/      CI：ruff、pyright、pytest
 ```
 

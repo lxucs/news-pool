@@ -62,6 +62,14 @@ With [skills](https://github.com/vercel-labs/skills) (needs Node.js):
 npx skills add lxucs/news-pool
 ```
 
+On Claude Code you can also install it as a plugin (type this inside Claude Code):
+
+```text
+/plugin install news-pool --marketplace lxucs/news-pool
+```
+
+Older Claude Code versions take two steps: `/plugin marketplace add lxucs/news-pool`, then `/plugin install news-pool@news-pool`. Once installed, the two skills show up as `news-pool:news-digest` and `news-pool:news-viewer`; to update, run `claude plugin update news-pool@news-pool` in your terminal.
+
 Or by hand: clone the repo and link both skill directories into your harness's skills directory.
 
 ```bash
@@ -75,11 +83,15 @@ ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.claude/skills/
 # Codex
 mkdir -p ~/.agents/skills
 ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.agents/skills/
+
+# WorkBuddy
+mkdir -p ~/.workbuddy/skills
+ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.workbuddy/skills/
 ```
 
 For other harnesses, put them in that harness's skills directory; copying works too. With a manual install, `git pull` updates it.
 
-Fetching needs network access, so a sandboxed harness (Codex, for example) may ask you to allow it. The reader only listens on 127.0.0.1.
+Fetching needs network access, so a sandboxed harness (Codex, for example) may ask you to allow it, and sources such as Google News need a network that can reach them. The reader only listens on 127.0.0.1.
 
 ## Use
 

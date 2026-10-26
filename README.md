@@ -60,6 +60,14 @@
 npx skills add lxucs/news-pool
 ```
 
+用 Claude Code 的，也可以作为插件安装（在 Claude Code 里输入）：
+
+```text
+/plugin install news-pool --marketplace lxucs/news-pool
+```
+
+较早的 Claude Code 分两步：先 `/plugin marketplace add lxucs/news-pool`，再 `/plugin install news-pool@news-pool`。装好后两个 skill 显示为 `news-pool:news-digest` 和 `news-pool:news-viewer`；更新时在终端里运行 `claude plugin update news-pool@news-pool`。
+
 或者手动安装：克隆仓库，把两个 skill 目录链接进 harness 的 skills 目录。
 
 ```bash
@@ -81,7 +89,7 @@ ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.workbuddy/skills/
 
 其他 harness 放进各自的 skills 目录即可，复制也行。手动安装的，以后 `git pull` 就是更新。
 
-抓取需要联网，沙箱型的 harness（例如 Codex）可能会请你放行；Google News 等境外来源要有相应的网络环境。阅读器只监听 127.0.0.1。
+抓取需要联网，沙箱型的 harness（例如 Codex）可能会请你放行；Google News 等来源要有相应的网络环境。阅读器只监听 127.0.0.1。
 
 ## 使用
 

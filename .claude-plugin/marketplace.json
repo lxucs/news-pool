@@ -1,0 +1,25 @@
+{
+  "name": "news-pool",
+  "description": "用你已经订阅的 agent 每天替你读新闻：抓取、去重、筛选、写中文摘要，在本地浏览器里阅读。不需要 API key。",
+  "owner": {
+    "name": "lxucs",
+    "url": "https://github.com/lxucs"
+  },
+  "plugins": [
+    {
+      "name": "news-pool",
+      "source": "./",
+      "description": "news-digest 每天收集新闻并写中文摘要，news-viewer 在浏览器里阅读、搜索和标记。不需要 API key，只用 Python 标准库。",
+      "author": {
+        "name": "lxucs",
+        "url": "https://github.com/lxucs"
+      },
+      "homepage": "https://github.com/lxucs/news-pool",
+      "repository": "https://github.com/lxucs/news-pool",
+      "license": "MIT",
+      "keywords": ["news", "rss", "digest", "summary", "reader", "chinese"],
+      "category": "productivity",
+      "skills": ["./news-digest", "./news-viewer"]
+    }
+  ]
+}
