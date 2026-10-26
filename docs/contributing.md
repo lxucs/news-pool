@@ -8,6 +8,7 @@
 - 宣布完成之前跑 `ruff format` 和 `ruff check`。
 - skill 代码**兼容 Python 3.9**：不用 `match`，不用 `zip(strict=)`，不用 `dataclass(slots=/kw_only=)`，注解以外不用 `X | Y`，不用 3.10 及以上版本才有的标准库 API。
 - 注释、docstring 和文档写中文，和 `SKILL.md` 一致；标识符用英文。ruff 按显示宽度计算行长，一个汉字算 2 列，中文注释按 100 列换行（中文没有空格，超长的行 ruff 不一定报出来）。Markdown 里的中文段落不要硬换行：换行会在汉字之间渲染出空格。
+- 唯一的英文文档是 `README.en.md`，它是 `README.md` 的英文版：改其中一个时同步改另一个。README 用的截图放在 `docs/images/`。
 - 注释的密度跟周围的代码保持一致。注释写*为什么*，不写*做了什么*。
 - 模块宜小而专。一个模块的代码超过约 400 行，通常说明它在做两件事。
 
@@ -87,3 +88,5 @@ uv run pytest
 ```
 
 运行它们并读完输出，再宣布完成。
+
+GitHub CI（`.github/workflows/ci.yml`）在 push 到 main 和每个 PR 上跑同样的检查：测试在 Linux 上用 Python 3.9 和 3.15 各跑一遍，在 macOS 上再跑一遍（页面 JS 的 `jsc` 检查只在 macOS 上运行）。CI 不能代替本地检查。

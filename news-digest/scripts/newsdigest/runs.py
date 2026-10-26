@@ -20,7 +20,7 @@ from .config import (
 from .console import say, warn
 from .errors import UsageError
 from .normalize import parse_time, parse_tz
-from .paths import EXAMPLE_PROFILE_DIR, resolve_pool
+from .paths import DEFAULT_EXAMPLE, example_profiles, resolve_pool
 from .pool import (
     KIND_ADHOC,
     KIND_DAILY,
@@ -44,8 +44,14 @@ from .selection import (
 
 
 def register(sub: argparse._SubParsersAction) -> None:
-    p = sub.add_parser("init", help="create the pool and a profile copied from the example")
+    p = sub.add_parser("init", help="create the pool and a profile copied from an example")
     p.add_argument("--pool")
+    p.add_argument(
+        "--example",
+        default=DEFAULT_EXAMPLE,
+        help=f"example profile to copy: {', '.join(example_profiles())} "
+        f"(default: {DEFAULT_EXAMPLE})",
+    )
     p.set_defaults(handler=cmd_init)
 
     p = sub.add_parser("sources", help="list every selectable source id")
@@ -69,6 +75,11 @@ def register(sub: argparse._SubParsersAction) -> None:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
+    examples = example_profiles()
+    if args.example not in examples:
+        raise UsageError(
+            f"unknown example {args.example!r}; expected one of: {', '.join(examples)}"
+        )
     pool = Pool(resolve_pool(args.pool))
     pool.items_dir.mkdir(parents=True, exist_ok=True)
     pool.runs_dir.mkdir(parents=True, exist_ok=True)
@@ -76,14 +87,14 @@ def cmd_init(args: argparse.Namespace) -> int:
     if not created:
         say(f"profile already exists, left unchanged: {pool.profile_dir}")
     else:
-        shutil.copytree(EXAMPLE_PROFILE_DIR, pool.profile_dir)
-        say(f"created a profile from the example: {pool.profile_dir}")
+        shutil.copytree(examples[args.example], pool.profile_dir)
+        say(f"created a profile from the example {args.example}: {pool.profile_dir}")
     say(f"pool: {pool.root}")
     if created:
         config = pool.profile_dir / PROFILE_CONFIG
         say(
-            f"next: ask the user what to follow, edit `interests` and `queries` in {config}, "
-            "then start"
+            f"next: tailor `interests` and `queries` in {config} to what the user follows "
+            "(ask first if you haven't), then start"
         )
     else:
         say("next: status")

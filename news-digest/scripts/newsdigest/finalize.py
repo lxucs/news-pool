@@ -30,6 +30,7 @@ from .validate import (
     load_context,
     require_valid_enriched,
     require_valid_triage,
+    summarized_events,
 )
 
 
@@ -53,7 +54,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     leads_path = ctx.run_dir / LEADS_FILE
     leads = read_json(leads_path) if leads_path.is_file() else {}
 
-    kept = triage.kept(ctx.min_importance)
+    kept = summarized_events(ctx, triage)
     items = [
         build_item(ctx, e, enriched.rows[e["primary"]], leads.get(e["primary"], {})) for e in kept
     ]
@@ -153,3 +154,4 @@ def _report(ctx: RunContext, manifest: dict[str, Any]) -> None:
     for message in manifest["warnings"]:
         warn(message)
     say(f"manifest: {ctx.run_dir / MANIFEST_FILE}")
+    say(f"run: {ctx.run_dir}")

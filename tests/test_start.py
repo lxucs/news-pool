@@ -8,6 +8,14 @@ import pytest
 from helpers import pin_clock, started_run
 
 from newsdigest import cli
+from newsdigest.config import (
+    CATEGORIES_FILE,
+    TIERS_FILE,
+    load_categories,
+    load_tiers,
+    resource_path,
+)
+from newsdigest.paths import example_profiles
 
 CST = timezone(timedelta(hours=8))
 NOW = datetime(2026, 10, 21, 8, 30, 15, tzinfo=CST)
@@ -35,6 +43,38 @@ def test_init_copies_example_profile_once(
     assert "left unchanged" in capsys.readouterr().out
 
 
+def test_init_copies_the_named_example(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    pool = tmp_path / "p"
+    assert cli.main(["init", "--pool", str(pool), "--example", "finance-zh"]) == 0
+    config = json.loads((pool / "profile" / "config.json").read_text(encoding="utf-8"))
+    assert config["name"] == "finance-zh"
+    assert "from the example finance-zh" in capsys.readouterr().out
+
+
+def test_init_rejects_an_unknown_example(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pool = tmp_path / "p"
+    assert cli.main(["init", "--pool", str(pool), "--example", "nope"]) == 1
+    err = capsys.readouterr().err
+    assert "'nope'" in err and "ai-zh" in err and "finance-zh" in err
+    assert not pool.exists()
+
+
+@pytest.mark.parametrize("name", sorted(example_profiles()))
+def test_every_example_profile_starts_a_daily_run(tmp_path: Path, name: str) -> None:
+    pool = tmp_path / "p"
+    assert cli.main(["init", "--pool", str(pool), "--example", name]) == 0
+    profile = pool / "profile"
+    load_categories(resource_path(profile, CATEGORIES_FILE))
+    load_tiers(resource_path(profile, TIERS_FILE))
+    assert cli.main(["start", "--pool", str(pool)]) == 0
+    (run_dir,) = (pool / "runs").iterdir()
+    run = _run(run_dir)
+    assert run["profile"] == name and run["kind"] == "daily"
+    assert run["sources"] and run["queries"]
+
+
 def test_daily_start_uses_profile_sources_and_first_run_window(tmp_path: Path) -> None:
     run_dir = started_run(tmp_path / "p", "--model", "test-model")
     run = _run(run_dir)
@@ -48,10 +88,9 @@ def test_daily_start_uses_profile_sources_and_first_run_window(tmp_path: Path) -
         "geekpark",
         "zhidx",
         "gnews",
-        "hn",
     ]
     assert run["sources"]["qbitai"]["start"] == (NOW - timedelta(hours=24)).isoformat()
-    assert run["queries"] == ["AI 大模型", "人工智能", "智能体"]
+    assert run["queries"] == ["AI 大模型", "智能体"]
     assert run["criterion"].startswith("AI 大模型")
     assert run["model"] == "test-model"
     assert set(run["resources"]) == {
@@ -77,7 +116,7 @@ def test_adhoc_focus_only_keeps_profile_queries_and_query_only_uses_queries(
     tmp_path: Path,
 ) -> None:
     run = _run(started_run(tmp_path / "p", "--focus", "只看芯片"))
-    assert run["kind"] == "adhoc" and run["queries"] == ["AI 大模型", "人工智能", "智能体"]
+    assert run["kind"] == "adhoc" and run["queries"] == ["AI 大模型", "智能体"]
     assert run["criterion"] == "只看芯片"
     run = _run(started_run(tmp_path / "q", "--query", "a", "--query", "b"))
     assert run["criterion"] == "a、b"
@@ -85,7 +124,7 @@ def test_adhoc_focus_only_keeps_profile_queries_and_query_only_uses_queries(
 
 def test_skip_removes_sources(tmp_path: Path) -> None:
     run = _run(started_run(tmp_path / "p", "--skip", "rss"))
-    assert list(run["sources"]) == ["gnews", "hn"]
+    assert list(run["sources"]) == ["gnews"]
 
 
 @pytest.mark.parametrize(
@@ -111,7 +150,8 @@ def test_start_without_profile_points_to_init(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     assert cli.main(["start", "--pool", str(tmp_path / "empty")]) == 1
-    assert "nd.py init" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "nd.py init --example" in err and "ai-zh" in err and "ask the user" in err
 
 
 def test_search_sources_need_queries(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -174,7 +214,7 @@ def test_init_ends_with_a_next_line(tmp_path: Path, capsys: pytest.CaptureFixtur
     capsys.readouterr()
     assert cli.main(["init", "--pool", str(pool)]) == 0
     lines = capsys.readouterr().out.splitlines()
-    assert lines[-1].startswith("[nd] next: ask the user what to follow")
+    assert lines[-1].startswith("[nd] next: tailor `interests` and `queries`")
     assert "config.json" in lines[-1] and lines[-1].endswith("then start")
     assert any(line.startswith("[nd] pool: ") for line in lines[:-1])
     assert cli.main(["init", "--pool", str(pool)]) == 0  # profile 已经存在

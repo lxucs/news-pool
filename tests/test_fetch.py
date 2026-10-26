@@ -64,7 +64,7 @@ def test_fetch_writes_candidates_and_records_failures(
     assert {r["source"] for r in _rows(run_dir / "candidates" / "qbitai.jsonl")} == {"量子位"}
     assert _rows(run_dir / "candidates" / "aiera.jsonl") == []
     hn_calls = [c for c in calls if "hn.algolia.com" in c]
-    assert len(hn_calls) == 3  # profile 的每条 query 单独请求：同义词之间不做 AND
+    assert len(hn_calls) == 2  # profile 的每条 query 单独请求：同义词之间不做 AND
     assert all("created_at_i%3E" in c for c in hn_calls)
 
 
@@ -96,6 +96,19 @@ def test_partial_search_failure_keeps_rows_but_does_not_count_as_ok(
     assert cli.main(["fetch", "--run", str(run_dir)]) == 0
     result = load_run(run_dir)["fetch"]["hn"]
     assert result["ok"] is False and "HTTP 503" in result["error"] and result["fetched"] == 3
+
+
+def test_wscn_request_stays_within_the_api_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_dir = started_run(tmp_path / "p", "--only", "wscn")
+    calls: list[str] = []
+    routes: Routes = {fetch.WSCN_URL: fixture_bytes("wscn_articles.json")}
+    monkeypatch.setattr(fetch, "http_get", fake_http(routes, calls))
+    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    # 总是要接口允许的最多条数：丢掉没有正文的之后，剩下的还要够 per_source_limit 条。
+    assert calls == [f"{fetch.WSCN_URL}?limit={fetch.WSCN_MAX_LIMIT}"]
+    assert load_run(run_dir)["fetch"]["wscn"]["ok"]
 
 
 def test_search_urls_carry_query_and_window() -> None:
@@ -147,11 +160,33 @@ def test_link_without_a_publish_time_warns(
     run_dir = started_run(tmp_path / "p", "--only", "none")
     links = tmp_path / "links.txt"
     links.write_text("https://www.qbitai.com/2026/10/x.html\n", encoding="utf-8")
-    undated = b"<html><head><title>Undated</title></head><body><p>text</p></body></html>"
+    undated = (
+        b'<html><head><title>Undated</title><meta name="description" content="summary">'
+        b"</head><body><p>text</p></body></html>"
+    )
     routes: Routes = {"https://www.qbitai.com/": undated}
     monkeypatch.setattr(fetch, "http_get", fake_http(routes, []))
     assert cli.main(["fetch", "--run", str(run_dir), "--links", str(links)]) == 0
     assert "no publish time" in capsys.readouterr().out
+
+
+def test_link_without_a_description_is_skipped_with_a_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run_dir = started_run(tmp_path / "p", "--only", "none")
+    links = tmp_path / "links.txt"
+    links.write_text("https://www.qbitai.com/2026/10/x.html\n", encoding="utf-8")
+    bare = b"<html><head><title>No description</title></head><body><p>text</p></body></html>"
+    monkeypatch.setattr(fetch, "http_get", fake_http({"https://www.qbitai.com/": bare}, []))
+    assert cli.main(["fetch", "--run", str(run_dir), "--links", str(links)]) == 0
+    assert "link skipped (no description found on the page)" in capsys.readouterr().out
+    assert _rows(run_dir / "candidates" / "links.jsonl") == []
+
+
+def test_feed_rows_without_text_do_not_count_toward_the_limit() -> None:
+    rows = [{"snippet": ""}, {"snippet": "<p> </p>"}, {"snippet": "a"}, {}, {"snippet": "b"}]
+    assert fetch._with_text(rows, 1) == ([{"snippet": "a"}], 2)
+    assert fetch._with_text(rows, 5) == ([{"snippet": "a"}, {"snippet": "b"}], 3)
 
 
 def test_link_redirected_to_a_captcha_page_is_skipped_with_a_warning(

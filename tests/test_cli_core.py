@@ -102,3 +102,4 @@ def test_use_utf8_leaves_streams_without_reconfigure_alone(
 def test_skill_md_quotes_the_message_check_prints() -> None:
     skill = (paths.SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
     assert "triage.json changed after `leads` ran" in skill
+    assert "kept events still have no text" in skill  # leads 的输出

@@ -11,7 +11,7 @@ from typing import Any
 from .errors import UsageError
 from .files import read_json
 from .normalize import parse_tz
-from .paths import REFERENCES_DIR
+from .paths import REFERENCES_DIR, init_hint
 
 DEFAULTS_FILE = "defaults.json"
 PROFILE_CONFIG = "config.json"
@@ -54,9 +54,7 @@ def load_json_config(path: Path) -> Any:
 def load_settings(profile_dir: Path) -> dict[str, Any]:
     cfg_path = profile_dir / PROFILE_CONFIG
     if not cfg_path.exists():
-        raise UsageError(
-            f"no profile at {profile_dir} (missing {PROFILE_CONFIG}); run `nd.py init`"
-        )
+        raise UsageError(f"no profile at {profile_dir} (missing {PROFILE_CONFIG}); {init_hint()}")
     defaults = load_json_config(REFERENCES_DIR / DEFAULTS_FILE)
     profile = load_json_config(cfg_path)
     if not isinstance(profile, dict):

@@ -1,0 +1,7 @@
+{
+  "_comment": "示例 profile（科学）。`nd.py init --example science-zh` 把它复制到 <pool>/profile/，之后改那一份。订阅源都是英文，标题和摘要由 agent 写成中文。",
+  "name": "science-zh",
+  "interests": "基础科学的重要进展（物理、生命科学、天文与航天、地球与气候、数学）、有影响的医学研究、重大科研政策与经费；不要：健康养生、伪科学、旧闻重提、泛泛的科普",
+  "queries": ["科学家 发现", "航天 发射", "临床试验 结果"],
+  "sources": ["rss", "gnews"]
+}

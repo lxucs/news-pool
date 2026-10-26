@@ -1,0 +1,7 @@
+{
+  "_comment": "示例 profile（软件开发与开源）。`nd.py init --example dev-zh` 把它复制到 <pool>/profile/，之后改那一份。这个示例自带 categories.json，替换内置的类别。",
+  "name": "dev-zh",
+  "interests": "软件开发与开源：编程语言和主流框架的重要版本、开源项目与社区动态、数据库与云基础设施、操作系统与内核、严重的安全漏洞和供应链攻击、AI 编程工具；不要：入门教程、招聘、营销软文、纯吐槽",
+  "queries": ["开源", "Linux", "Rust", "Python"],
+  "sources": ["rss", "gnews"]
+}

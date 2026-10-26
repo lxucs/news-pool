@@ -1,0 +1,7 @@
+[
+  {"id": "ftchinese", "name": "FT中文网", "url": "https://www.ftchinese.com/rss/news", "note": "英国《金融时报》中文版"},
+  {"id": "jiemian", "name": "界面新闻", "url": "https://a.jiemian.com/index.php?m=article&a=rss", "note": "财经快讯为主，量大"},
+  {"id": "chinanews_finance", "name": "中新网财经", "url": "https://www.chinanews.com.cn/rss/finance.xml"},
+  {"id": "36kr", "name": "36氪", "url": "https://www.36kr.com/feed", "note": "必须带 www，不带返回反爬空页"},
+  {"id": "tmtpost", "name": "钛媒体", "url": "https://www.tmtpost.com/rss.xml", "note": "商业与 TMT"}
+]

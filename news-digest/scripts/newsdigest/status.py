@@ -12,7 +12,7 @@ from .console import say
 from .errors import UsageError
 from .files import read_json
 from .normalize import from_iso, parse_tz
-from .paths import resolve_pool
+from .paths import init_hint, resolve_pool
 from .pool import (
     MANIFEST_FILE,
     STAGE_FETCHED,
@@ -65,15 +65,15 @@ def next_step(run_dir: Path, run: dict[str, Any]) -> str:
             "write triage.json from triage_input.json (rules: references/taxonomy.md), then check"
         )
     if stage == STAGE_LEADS:
-        if _nothing_kept(run_dir):
-            return "finalize (nothing was kept, so there is nothing to enrich)"
+        if _nothing_to_summarize(run_dir):
+            return "finalize (nothing to summarize)"
         if any(run_dir.glob("enriched-*.jsonl")):
             return "check, then finalize"
         return "write enriched-1.jsonl from enrich_input.json, then check"
     return f"unknown stage {stage!r}"
 
 
-def _nothing_kept(run_dir: Path) -> bool:
+def _nothing_to_summarize(run_dir: Path) -> bool:
     path = run_dir / ENRICH_INPUT_FILE
     return path.is_file() and not read_json(path)["items"]
 
@@ -90,7 +90,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     pool = Pool(resolve_pool(args.pool))
     say(f"pool: {pool.root}")
     if not (pool.profile_dir / PROFILE_CONFIG).is_file():
-        say("profile: missing; run `nd.py init`")
+        say("profile: missing")
+        say(f"next: {init_hint()}")
         return 0
     settings = load_settings(pool.profile_dir)
     say(f"profile: {settings['name']}: {settings['interests']}")

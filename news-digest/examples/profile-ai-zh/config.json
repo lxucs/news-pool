@@ -1,8 +1,7 @@
 {
-  "_comment": "示例 profile（中文 AI 资讯）。`nd.py init` 把它复制到 <pool>/profile/，之后改那一份。",
+  "_comment": "示例 profile（中文 AI 资讯），也是 `nd.py init` 默认用的示例。init 把它复制到 <pool>/profile/，之后改那一份。",
   "name": "ai-zh",
   "interests": "AI 大模型与智能体的产品发布、研究进展、算力与芯片、AI 公司融资与监管；不要：消费电子评测、营销软文、纯观点",
-  "queries": ["AI 大模型", "人工智能", "智能体"],
-  "sources": ["rss", "gnews", "hn"],
-  "per_source_limit": 40
+  "queries": ["AI 大模型", "智能体"],
+  "sources": ["rss", "gnews"]
 }

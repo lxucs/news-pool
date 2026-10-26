@@ -30,8 +30,8 @@ def test_deep_merge_merges_dicts_replaces_lists_drops_comments() -> None:
 def test_example_profile_merges_over_defaults() -> None:
     s = load_settings(EXAMPLE_PROFILE_DIR)
     assert s["name"] == "ai-zh"
-    assert s["sources"] == ["rss", "gnews", "hn"]
-    assert s["per_source_limit"] == 40
+    assert s["sources"] == ["rss", "gnews"]
+    assert s["per_source_limit"] == 10
     assert s["http"]["timeout_s"] == 20
     assert "_comment" not in s
 

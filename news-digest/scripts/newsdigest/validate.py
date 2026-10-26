@@ -25,6 +25,7 @@ from .prepare import RECORDS_FILE, TRIAGE_INPUT_FILE
 
 TRIAGE_FILE = "triage.json"
 ENRICH_INPUT_FILE = "enrich_input.json"
+NO_TEXT_KEY = "no_text"  # enrich_input.json 里：`leads` 之后仍然没有正文、不写摘要的 primary
 ERRORS_FILE = "errors.json"
 ENRICHED_RE = re.compile(r"enriched-(\d+)\.jsonl")
 
@@ -226,10 +227,15 @@ class Enriched:
 
 
 def kept_primaries(ctx: RunContext, triage: Triage) -> dict[str, str]:
-    """保留的 primary id → 它的语言（英文条目必须有 `title_zh`）。"""
-    return {
-        e["primary"]: ctx.records[e["primary"]]["lang"] for e in triage.kept(ctx.min_importance)
-    }
+    """要写摘要的 primary id → 它的语言（英文条目必须有 `title_zh`）。"""
+    return {e["primary"]: ctx.records[e["primary"]]["lang"] for e in summarized_events(ctx, triage)}
+
+
+def summarized_events(ctx: RunContext, triage: Triage) -> list[dict[str, Any]]:
+    """保留下来、要写摘要并落盘的事件：去掉 `leads` 之后仍然没有正文的。"""
+    path = ctx.run_dir / ENRICH_INPUT_FILE
+    no_text = set(read_json(path).get(NO_TEXT_KEY, [])) if path.is_file() else set()
+    return [e for e in triage.kept(ctx.min_importance) if e["primary"] not in no_text]
 
 
 def load_enriched(ctx: RunContext, primaries: dict[str, str]) -> tuple[Enriched, list[Problem]]:
@@ -432,7 +438,8 @@ def cmd_check(args: argparse.Namespace) -> int:
         clear_problems(ctx)
         say(f"triage.json changed after `leads` ran; next: leads --run {ctx.run_dir}")
         return 0
-    if kept and not any(ctx.run_dir.glob("enriched-*.jsonl")):
+    to_write = kept_primaries(ctx, triage)
+    if to_write and not any(ctx.run_dir.glob("enriched-*.jsonl")):
         clear_problems(ctx)
         say(
             "next: write enriched-1.jsonl (then -2, -3 … per batch) from enrich_input.json, "
@@ -441,6 +448,6 @@ def cmd_check(args: argparse.Namespace) -> int:
         return 0
     enriched = require_valid_enriched(ctx, triage)
     clear_problems(ctx)
-    say(f"enriched ok: {len(enriched.rows)} of {len(kept)} kept primaries")
+    say(f"enriched ok: {len(enriched.rows)} of {len(to_write)} primaries to summarize")
     say(f"next: finalize --run {ctx.run_dir}")
     return 0

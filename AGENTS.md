@@ -19,14 +19,15 @@ news-digest/            skill 本体；以符号链接或复制的方式放进 h
   SKILL.md              给 agent 的流程说明
   scripts/nd.py         入口；实现在 scripts/newsdigest/
   references/           默认值、订阅源、类别、标签、来源分级，以及给 agent 的规则
-  examples/             示例 profile 和候选样例
+  examples/             示例 profile（ai-zh、finance-zh、games-zh、dev-zh、science-zh）和候选样例
 news-viewer/            阅读器 skill；安装方式相同
   SKILL.md              给 agent 的说明
   scripts/nv.py         入口；实现在 scripts/newsviewer/
   scripts/newsviewer/static/   页面：HTML、CSS、JS 模块、内置的 Vue（没有构建步骤）
   references/           defaults.json
 tests/                  离线测试；tests/fixtures/ 存放从线上接口抓取的真实响应
-docs/                   贡献指南
+docs/                   贡献指南；images/ 放 README 用的截图
+.github/workflows/      CI：ruff、pyright、pytest
 ```
 
 ## 环境

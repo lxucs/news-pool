@@ -1,0 +1,7 @@
+[
+  {"id": "nature", "name": "Nature", "url": "https://www.nature.com/nature.rss", "note": "英文，新闻与论文都有，量大"},
+  {"id": "science", "name": "Science", "url": "https://www.science.org/rss/news_current.xml", "note": "英文，Science 杂志的新闻"},
+  {"id": "quanta", "name": "Quanta Magazine", "url": "https://www.quantamagazine.org/feed/", "note": "英文，数学、物理、生物的深度报道"},
+  {"id": "newscientist", "name": "New Scientist", "url": "https://www.newscientist.com/feed/home/", "note": "英文"},
+  {"id": "sciencedaily", "name": "ScienceDaily", "url": "https://www.sciencedaily.com/rss/all.xml", "note": "英文，研究机构新闻稿汇总，量大"}
+]

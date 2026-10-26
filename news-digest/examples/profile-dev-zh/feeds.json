@@ -1,0 +1,8 @@
+[
+  {"id": "oschina", "name": "开源中国", "url": "https://www.oschina.net/news/rss", "note": "开源项目与软件发布，量大"},
+  {"id": "infoq", "name": "InfoQ 中国", "url": "https://www.infoq.cn/feed", "note": "企业级技术"},
+  {"id": "ruanyf", "name": "阮一峰的网络日志", "url": "https://www.ruanyifeng.com/blog/atom.xml", "note": "每周五的「科技爱好者周刊」（Atom）"},
+  {"id": "solidot", "name": "Solidot", "url": "https://www.solidot.org/index.rss", "note": "科技情报，条目精简"},
+  {"id": "github_blog", "name": "GitHub Blog", "url": "https://github.blog/feed/", "note": "英文，GitHub 官方博客"},
+  {"id": "lwn", "name": "LWN.net", "url": "https://lwn.net/headlines/rss", "note": "英文，Linux 与内核；标 [$] 的文章订阅可读"}
+]

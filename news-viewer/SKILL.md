@@ -7,6 +7,14 @@ description: 新闻阅读器：在浏览器里阅读新闻池（news-digest 收�
 
 脚本只用 Python ≥ 3.9 标准库，不用安装任何东西，也不联网：页面只在本机 `127.0.0.1` 上提供。
 
+## 完整用法：news-digest 收，news-viewer 读
+
+新闻池里的新闻都由 **news-digest** skill 收进来；本 skill 只负责读和标记，不抓新闻。
+
+- 新闻池不存在（`nv.py up` 退出码 1，提示 `no news pool`），或页面显示"新闻池里还没有新闻"：先用 news-digest 抓一次（"抓今天的新闻"）。第一次使用时，它会问用户关注什么，并建好 profile。
+- 用户要新的新闻（"抓今天的新闻""看看最近关于 X 的新闻"）：交给 news-digest。那次运行落盘之后，用 `nv.py up --run <运行目录或 run_id>` 直接打开它；阅读器已经开着时不用重启，刷新页面就能看到。
+- 用户想改关注点或加订阅源：这些在 news-digest 的 profile 里（`<pool>/profile/`），按 news-digest 的 SKILL.md 改。
+
 ## 打开阅读器
 
 1. 运行 `python3 <skill_dir>/scripts/nv.py up`（Windows 用 `python`）。`<skill_dir>` 是本文件所在的目录，用绝对路径。

@@ -42,7 +42,10 @@ def test_next_step(tmp_path: Path, run: dict, files: list[str], expected: str) -
 
 
 def test_status_without_profile(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert "run `nd.py init`" in _status(["--pool", str(tmp_path / "empty")], capsys)
+    lines = _status(["--pool", str(tmp_path / "empty")], capsys).splitlines()
+    assert "[nd] profile: missing" in lines
+    assert lines[-1].startswith("[nd] next: ask the user what news they follow")
+    assert "nd.py init --example" in lines[-1] and "finance-zh" in lines[-1]
 
 
 def test_unfinished_runs_are_resumable_then_stale(

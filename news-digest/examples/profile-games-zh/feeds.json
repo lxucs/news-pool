@@ -1,0 +1,8 @@
+[
+  {"id": "gcores", "name": "机核", "url": "https://www.gcores.com/rss", "note": "游戏文化、资讯与播客"},
+  {"id": "yystv", "name": "游研社", "url": "https://www.yystv.cn/rss/feed", "note": "游戏文化与深度稿"},
+  {"id": "chuapp", "name": "触乐", "url": "https://www.chuapp.com/feed", "note": "深度报道，另有每周行业大事"},
+  {"id": "gamelook", "name": "GameLook", "url": "http://www.gamelook.com.cn/feed", "note": "游戏产业与商业"},
+  {"id": "ign_cn", "name": "IGN 中国", "url": "https://www.ign.com.cn/feed.xml", "note": "新作资讯、评测，量大"},
+  {"id": "gamesindustry", "name": "GamesIndustry.biz", "url": "https://www.gamesindustry.biz/feed", "note": "英文，海外行业新闻"}
+]

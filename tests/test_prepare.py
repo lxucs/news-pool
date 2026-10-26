@@ -61,12 +61,14 @@ def test_title_duplicates_keep_the_more_authoritative_copy(
                 "url": "https://blog.example.com/copy",
                 "title": "英伟达发布新 GPU",
                 "published_at": "2026-10-20T08:00:00+08:00",
+                "snippet": "正文",
                 "source": "Some Blog",
             },
             {
                 "url": "https://www.reuters.com/nvidia",
                 "title": "英伟达发布新GPU！",
                 "published_at": "2026-10-20T09:00:00+08:00",
+                "snippet": "正文",
                 "source": "Reuters",
             },
         ],
@@ -109,11 +111,13 @@ def test_source_window_applies_and_links_are_exempt(
                 "url": "https://www.qbitai.com/a",
                 "title": "窗口内",
                 "published_at": "2026-10-20T20:00:00+08:00",
+                "snippet": "正文",
             },
             {
                 "url": "https://www.qbitai.com/b",
                 "title": "窗口外",
                 "published_at": "2026-10-20T10:00:00+08:00",
+                "snippet": "正文",
             },
         ],
     )
@@ -125,6 +129,7 @@ def test_source_window_applies_and_links_are_exempt(
                 "url": "https://mp.weixin.qq.com/s/old",
                 "title": "用户投递的旧文",
                 "published_at": "2026-10-01T10:00:00+08:00",
+                "snippet": "正文",
                 "source": "某公众号",
             },
         ],
@@ -152,6 +157,7 @@ def test_feed_that_only_reaches_back_part_of_the_window_warns(
                 "url": "https://www.qbitai.com/a",
                 "title": "最新",
                 "published_at": "2026-10-20T20:00:00+08:00",
+                "snippet": "正文",
             },
         ],
     )
@@ -162,6 +168,55 @@ def test_feed_that_only_reaches_back_part_of_the_window_warns(
     assert cli.main(["prepare", "--run", str(run_dir)]) == 0
     warnings = load_run(run_dir)["warnings"]
     assert len(warnings) == 1 and warnings[0].startswith("qbitai:")
+
+
+def test_feed_that_filled_per_source_limit_does_not_warn(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_clock(monkeypatch, SAMPLE_NOW)
+    run_dir = started_run(tmp_path / "p", "--only", "qbitai", "--hours", "6")
+    write_candidates(
+        run_dir,
+        "qbitai",
+        [
+            {
+                "url": "https://www.qbitai.com/a",
+                "title": "最新",
+                "published_at": "2026-10-20T20:00:00+08:00",
+                "snippet": "正文",
+            },
+        ],
+    )
+    run = load_run(run_dir)
+    run["settings"]["per_source_limit"] = 1  # 截断来自 profile 有意设的上限，不是订阅源
+    save_run(run_dir, run)
+    set_fetched(
+        run_dir,
+        {"qbitai": {"ok": True, "fetched": 1, "error": "", "oldest": "2026-10-20T20:00:00+08:00"}},
+    )
+    assert cli.main(["prepare", "--run", str(run_dir)]) == 0
+    assert load_run(run_dir)["warnings"] == []
+
+
+def test_rows_without_text_are_dropped_except_from_search_sources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_clock(monkeypatch, SAMPLE_NOW)
+    run_dir = started_run(tmp_path / "p", "--only", "gnews", "--hours", "48")
+    when = "2026-10-20T10:00:00+08:00"
+    gnews_url = "https://news.google.com/rss/articles/a"
+    write_candidates(
+        run_dir, "gnews", [{"url": gnews_url, "title": "只有标题", "published_at": when}]
+    )
+    write_candidates(
+        run_dir,
+        "manual",
+        [{"url": "https://a.example.com/x", "title": "手动找到的", "published_at": when}],
+    )
+    set_fetched(run_dir, {"gnews": {"ok": True, "fetched": 1, "error": "", "oldest": when}})
+    assert cli.main(["prepare", "--run", str(run_dir)]) == 0
+    assert [r["source_id"] for r in read_json_file(run_dir / "records.json")] == ["gnews"]
+    assert load_run(run_dir)["stats"]["no_text"] == 1
 
 
 def test_cap_keeps_the_newest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -189,7 +244,8 @@ def test_no_new_candidates_finalizes_an_empty_run(
     assert load_run(run_dir)["status"] == "finalized"
     assert read_json_file(run_dir / "manifest.json")["items"] == []
     assert (run_dir / "seen.txt").read_text(encoding="utf-8") == ""
-    assert "no new candidates" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "no new candidates" in out and out.splitlines()[-1] == f"[nd] run: {run_dir}"
 
 
 def test_prepare_before_fetch_is_a_usage_error(
@@ -248,7 +304,7 @@ def test_bom_in_an_adapter_candidate_file_is_stripped_and_unreadable_lines_warn(
     run_dir = started_run(tmp_path / "p", "--only", "none", "--hours", "48")
     row = (
         '{"url": "https://a.example.com/x", "title": "某新闻", '
-        '"published_at": "2026-10-20T10:00:00+08:00"}'
+        '"published_at": "2026-10-20T10:00:00+08:00", "snippet": "正文"}'
     )
     write_candidates(run_dir, "qbitai", "\ufeff" + row + "\nnot json\n")
     set_fetched(run_dir, {})
@@ -287,12 +343,14 @@ def test_qualifier_suffix_title_is_a_duplicate_within_a_run(
                 "url": "https://blog.example.com/short",
                 "title": "英伟达发布新一代数据中心 GPU",
                 "published_at": "2026-10-20T08:00:00+08:00",
+                "snippet": "正文",
                 "source": "Some Blog",
             },
             {
                 "url": "https://www.reuters.com/long",
                 "title": "英伟达发布新一代数据中心 GPU，功耗降低 30%",
                 "published_at": "2026-10-20T09:00:00+08:00",
+                "snippet": "正文",
                 "source": "Reuters",
             },
         ],
@@ -316,12 +374,14 @@ def test_qualifier_prefix_title_is_also_a_duplicate(
                 "url": "https://www.reuters.com/plain",
                 "title": "苹果发布M5芯片",
                 "published_at": "2026-10-20T08:00:00+08:00",
+                "snippet": "正文",
                 "source": "Reuters",
             },
             {
                 "url": "https://blog.example.com/flash",
                 "title": "快讯：苹果发布M5芯片",
                 "published_at": "2026-10-20T09:00:00+08:00",
+                "snippet": "正文",
                 "source": "Some Blog",
             },
         ],
@@ -345,16 +405,19 @@ def test_single_token_differences_stay_separate(
                 "url": "https://a.example.com/m5",
                 "title": "苹果发布M5芯片",
                 "published_at": "2026-10-20T08:00:00+08:00",
+                "snippet": "正文",
             },
             {
                 "url": "https://b.example.com/m6",
                 "title": "苹果发布M6芯片",
                 "published_at": "2026-10-20T08:30:00+08:00",
+                "snippet": "正文",
             },
             {
                 "url": "https://c.example.com/m5pro",
                 "title": "苹果发布M5 Pro芯片",
                 "published_at": "2026-10-20T09:00:00+08:00",
+                "snippet": "正文",
             },
         ],
     )
@@ -376,16 +439,19 @@ def test_short_titles_dedup_only_exactly(tmp_path: Path, monkeypatch: pytest.Mon
                 "url": "https://a.example.com/1",
                 "title": "声明",
                 "published_at": "2026-10-20T08:00:00+08:00",
+                "snippet": "正文",
             },
             {
                 "url": "https://b.example.com/2",
                 "title": "某公司发布重要声明",
                 "published_at": "2026-10-20T09:00:00+08:00",
+                "snippet": "正文",
             },
             {
                 "url": "https://c.example.com/3",
                 "title": "声明",
                 "published_at": "2026-10-20T10:00:00+08:00",
+                "snippet": "正文",
             },
         ],
     )
@@ -407,11 +473,13 @@ def test_title_dup_min_tokens_is_tunable(tmp_path: Path, monkeypatch: pytest.Mon
                 "url": "https://a.example.com/1",
                 "title": "声明",
                 "published_at": "2026-10-20T08:00:00+08:00",
+                "snippet": "正文",
             },
             {
                 "url": "https://b.example.com/2",
                 "title": "某公司发布重要声明",
                 "published_at": "2026-10-20T09:00:00+08:00",
+                "snippet": "正文",
             },
         ],
     )

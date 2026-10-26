@@ -15,6 +15,7 @@ from helpers import (
     read_json_file,
     sample_enriched,
     sample_triage,
+    set_fetched,
     started_run,
     write_candidates,
     write_enriched,
@@ -81,24 +82,19 @@ def test_thin_primaries_get_page_descriptions(
     assert items[techcrunch]["text"] == records[techcrunch]["snippet"]
 
 
-def test_google_news_links_resolve_to_the_publisher(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def _gnews_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, str]:
+    """一次每日运行，唯一的候选是一条没有正文的 Google News 条目，triage 保留了它。"""
     pin_clock(monkeypatch, SAMPLE_NOW)
-    run_dir = started_run(tmp_path / "p", "--only", "none", "--hours", "48")
-    write_candidates(
-        run_dir,
-        "manual",
-        [
-            {
-                "url": "https://news.google.com/rss/articles/abc",
-                "title": "某新闻",
-                "published_at": "2026-10-20T10:00:00+08:00",
-                "source": "某报",
-            },
-        ],
-    )
-    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    run_dir = started_run(tmp_path / "p", "--only", "gnews", "--hours", "48")
+    when = "2026-10-20T10:00:00+08:00"
+    row = {
+        "url": "https://news.google.com/rss/articles/abc",
+        "title": "某新闻",
+        "published_at": when,
+        "source": "某报",
+    }
+    write_candidates(run_dir, "gnews", [row])
+    set_fetched(run_dir, {"gnews": {"ok": True, "fetched": 1, "error": "", "oldest": when}})
     assert cli.main(["prepare", "--run", str(run_dir)]) == 0
     rid = id_for(run_dir, "news.google.com")
     write_triage(
@@ -108,6 +104,13 @@ def test_google_news_links_resolve_to_the_publisher(
             "drop": [],
         },
     )
+    return run_dir, rid
+
+
+def test_google_news_links_resolve_to_the_publisher(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_dir, rid = _gnews_run(tmp_path, monkeypatch)
     publisher = "https://www.qbitai.com/2026/10/x.html"
 
     def http_get(url: str, http_cfg: dict[str, Any], user_agent: str | None = None) -> Response:
@@ -116,6 +119,29 @@ def test_google_news_links_resolve_to_the_publisher(
     monkeypatch.setattr(leads, "http_get", http_get)
     assert cli.main(["leads", "--run", str(run_dir)]) == 0
     assert read_json_file(run_dir / "leads.json")[rid]["resolved_url"] == publisher
+    assert [i["id"] for i in read_json_file(run_dir / "enrich_input.json")["items"]] == [rid]
+
+
+def test_kept_events_still_without_text_are_dropped_without_a_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run_dir, rid = _gnews_run(tmp_path, monkeypatch)
+
+    def http_get(url: str, http_cfg: dict[str, Any], user_agent: str | None = None) -> Response:
+        return Response(url, 200, "", b"<html><head><title>Google News</title></head></html>")
+
+    monkeypatch.setattr(leads, "http_get", http_get)  # 停在 Google 的跳转页上
+    capsys.readouterr()
+    assert cli.main(["leads", "--run", str(run_dir)]) == 0
+    out = capsys.readouterr().out
+    doc = read_json_file(run_dir / "enrich_input.json")
+    assert doc["items"] == [] and doc["no_text"] == [rid]
+    assert "1 kept events still have no text" in out and "next: finalize" in out
+    assert cli.main(["check", "--run", str(run_dir)]) == 0  # 不要求为它写摘要
+    assert "next: finalize" in capsys.readouterr().out
+    assert cli.main(["finalize", "--run", str(run_dir)]) == 0
+    assert read_json_file(run_dir / "manifest.json")["items"] == []
+    assert (run_dir / "seen.txt").read_text(encoding="utf-8") == f"{rid} dropped\n"
 
 
 def test_check_walks_through_enrichment(run_dir: Path, capsys: pytest.CaptureFixture[str]) -> None:

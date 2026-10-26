@@ -23,7 +23,7 @@ from .console import say, warn
 from .errors import AllSourcesFailed, UsageError
 from .files import write_jsonl_atomic
 from .net import FetchError, http_get
-from .normalize import from_iso, parse_time, parse_tz
+from .normalize import from_iso, parse_time, parse_tz, strip_html
 from .pool import STAGE_FETCHED, open_run, require_open, save_run
 
 CANDIDATES_DIR = "candidates"
@@ -35,7 +35,7 @@ GNEWS_URL = "https://news.google.com/rss/search"
 HN_URL = "https://hn.algolia.com/api/v1/search_by_date"
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 WSCN_URL = "https://api-one.wallstcn.com/apiv1/content/articles"
-WSCN_MAX_LIMIT = 100
+WSCN_MAX_LIMIT = 35  # 2026-10-26 实测：limit 超过 35 时 `data` 返回空字符串
 HN_MAX_HITS = 1000
 GDELT_MAX_RECORDS = 250
 GDELT_MIN_MINUTES = 15
@@ -58,7 +58,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     cand_dir = run_dir / CANDIDATES_DIR
     results: dict[str, dict[str, Any]] = {}
     for sid, info in run["sources"].items():
-        rows, errors = _fetch_source(info, run["queries"], settings)
+        rows, errors, no_text = _fetch_source(info, run["queries"], settings)
         write_jsonl_atomic(cand_dir / f"{sid}.jsonl", rows)
         results[sid] = {
             "ok": not errors,
@@ -66,7 +66,11 @@ def cmd_fetch(args: argparse.Namespace) -> int:
             "error": "; ".join(errors),
             "oldest": _oldest(rows, tz),
         }
-        say(f"{sid}: {len(rows)} candidates" + (f"; FAILED: {'; '.join(errors)}" if errors else ""))
+        say(
+            f"{sid}: {len(rows)} candidates"
+            + (f" ({no_text} without text skipped)" if no_text else "")
+            + (f"; FAILED: {'; '.join(errors)}" if errors else "")
+        )
     linked = 0
     if args.links:
         linked = _fetch_links(Path(args.links).expanduser(), cand_dir, settings, tz)
@@ -90,19 +94,39 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 def _fetch_source(
     info: dict[str, Any], queries: list[str], settings: dict[str, Any]
-) -> tuple[list[dict[str, Any]], list[str]]:
+) -> tuple[list[dict[str, Any]], list[str], int]:
+    """(候选行, 错误, 跳过的没有正文的行数)。订阅式来源先丢掉没有正文的行，再取
+    per_source_limit 条；检索式来源的条目本来就没有正文，原样交给 triage。"""
     adapter = info["adapter"]
-    limit = int(settings["per_source_limit"])
     try:
         if adapter == "rss":
             _, rows = parse_feed(http_get(info["url"], settings["http"]).text)
-            return [dict(row, source=info["name"]) for row in rows[:limit]], []
-        if adapter == "wscn":
-            url = f"{WSCN_URL}?{urlencode({'limit': min(limit, WSCN_MAX_LIMIT)})}"
-            return parse_wscn(http_get(url, settings["http"]).text)[:limit], []
+            rows = [dict(row, source=info["name"]) for row in rows]
+        elif adapter == "wscn":
+            # 总是要接口允许的最多条数：丢掉没有正文的之后，剩下的还要够 per_source_limit 条。
+            url = f"{WSCN_URL}?{urlencode({'limit': WSCN_MAX_LIMIT})}"
+            rows = parse_wscn(http_get(url, settings["http"]).text)
+        else:
+            rows, errors = _search(adapter, info, queries, settings)
+            return rows, errors, 0
     except (FetchError, ParseError) as exc:
-        return [], [str(exc)]
-    return _search(adapter, info, queries, settings)
+        return [], [str(exc)], 0
+    kept, no_text = _with_text(rows, int(settings["per_source_limit"]))
+    return kept, [], no_text
+
+
+def _with_text(rows: list[dict[str, Any]], limit: int) -> tuple[list[dict[str, Any]], int]:
+    """按原顺序（最新的在前）取前 limit 条有正文的行；返回它们和途中跳过的行数。"""
+    kept: list[dict[str, Any]] = []
+    skipped = 0
+    for row in rows:
+        if len(kept) == limit:
+            break
+        if strip_html(str(row.get("snippet") or "")):
+            kept.append(row)
+        else:
+            skipped += 1
+    return kept, skipped
 
 
 def _search(
@@ -188,6 +212,9 @@ def _fetch_links(path: Path, cand_dir: Path, settings: dict[str, Any], tz: tzinf
         page = parse_article_page(resp.text, resp.url, tz)
         if not page["title"]:
             warn(f"link skipped (no title found): {url}")
+            continue
+        if not page["snippet"]:
+            warn(f"link skipped (no description found on the page): {url}")
             continue
         if not page["published_at"]:
             warn(f"link has no publish time; prepare will drop it: {url}")

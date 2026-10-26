@@ -1,4 +1,5 @@
-"""prepare：规范化候选，按各来源的时间窗过滤，在运行内去重并对照新闻池去重。"""
+"""prepare：规范化候选，丢掉没有正文的（检索源除外），按各来源的时间窗过滤，在运行内去重并对照
+新闻池去重。"""
 
 from __future__ import annotations
 
@@ -38,12 +39,12 @@ from .pool import (
     save_run,
     seen_ids,
 )
-from .selection import KIND_FEED
+from .selection import KIND_FEED, KIND_SEARCH
 
 RECORDS_FILE = "records.json"
 TRIAGE_INPUT_FILE = "triage_input.json"
 STAT_KEYS = (
-    "candidates", "unreadable", "incomplete", "no_time", "out_of_window",
+    "candidates", "unreadable", "incomplete", "no_time", "no_text", "out_of_window",
     "duplicate", "already_seen", "over_cap", "new",
 )  # fmt: skip
 
@@ -75,7 +76,7 @@ def _pick(raw: dict[str, Any], keys: tuple[str, ...]) -> Any:
 
 
 def normalize_candidate(
-    raw: dict[str, Any], source_id: str, tz: tzinfo, snippet_max: int
+    raw: dict[str, Any], source_id: str, tz: tzinfo, snippet_max: int, require_text: bool = True
 ) -> tuple[dict[str, Any] | None, str]:
     url = str(_pick(raw, URL_KEYS) or "").strip()
     title = strip_html(str(_pick(raw, TITLE_KEYS) or ""))
@@ -84,9 +85,11 @@ def normalize_candidate(
     published = parse_time(_pick(raw, TIME_KEYS), tz)
     if published is None:  # 发布时间未知时绝不猜测
         return None, "no_time"
+    snippet = strip_html(str(_pick(raw, SNIPPET_KEYS) or ""))[:snippet_max]
+    if require_text and not snippet:  # 没有正文就写不出摘要，不必交给 agent
+        return None, "no_text"
     canonical = canonicalize_url(url)
     domain = domain_of(canonical)
-    snippet = strip_html(str(_pick(raw, SNIPPET_KEYS) or ""))[:snippet_max]
     record = {
         "id": url_id(canonical),
         "url": url,
@@ -139,6 +142,8 @@ def cmd_prepare(args: argparse.Namespace) -> int:
     tiers = load_tiers(Path(run["resources"][TIERS_FILE]))
     windows = {sid: (from_iso(i["start"]), from_iso(i["end"])) for sid, i in run["sources"].items()}
     overall = (from_iso(run["window"]["start"]), from_iso(run["window"]["end"]))
+    # 检索式来源的条目本来就没有正文，仍交给 triage；没有正文的事件到 `leads` 再丢。
+    search_ids = {sid for sid, info in run["sources"].items() if info.get("kind") == KIND_SEARCH}
     stats: dict[str, int] = dict.fromkeys(STAT_KEYS, 0)
 
     valid: list[dict[str, Any]] = []
@@ -154,7 +159,11 @@ def cmd_prepare(args: argparse.Namespace) -> int:
         for raw in rows:
             stats["candidates"] += 1
             rec, reason = normalize_candidate(
-                raw, source_id, tz, int(settings["snippet_max_chars"])
+                raw,
+                source_id,
+                tz,
+                int(settings["snippet_max_chars"]),
+                require_text=source_id not in search_ids,
             )
             if rec is None:
                 stats[reason] += 1
@@ -221,8 +230,8 @@ def cmd_prepare(args: argparse.Namespace) -> int:
     say(
         f"{stats['candidates']} candidates: {stats['new']} new, {stats['duplicate']} duplicates, "
         f"{stats['already_seen']} already seen, {stats['out_of_window']} outside the window, "
-        f"{stats['no_time']} without a publish time, {stats['incomplete']} without URL/title, "
-        f"{stats['over_cap']} over the cap"
+        f"{stats['no_time']} without a publish time, {stats['no_text']} without text, "
+        f"{stats['incomplete']} without URL/title, {stats['over_cap']} over the cap"
     )
     if not fresh:
         finalized_at = clock.now(tz).isoformat()
@@ -231,6 +240,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
             pool_of(run_dir), run_dir, run, [], build_manifest(run, [], stats_out, finalized_at), []
         )
         say("no new candidates; the run is finalized with an empty digest")
+        say(f"run: {run_dir}")
         return 0
     say(f"triage input: {run_dir / TRIAGE_INPUT_FILE}")
     say(f"next: write triage.json (rules: references/taxonomy.md), then check --run {run_dir}")
@@ -287,12 +297,16 @@ def _triage_input(run: dict[str, Any], fresh: list[dict[str, Any]]) -> dict[str,
 
 
 def _truncation_warnings(run: dict[str, Any]) -> list[str]:
-    """订阅源只提供最新的若干条；这些条目覆盖不到时间窗起点时，中间发布的内容就丢了。"""
+    """订阅源只提供最新的若干条；这些条目覆盖不到时间窗起点时，中间发布的内容就丢了。
+    取满了 per_source_limit 条的来源不提示：那是 profile 有意设的上限。"""
     out: list[str] = []
     fetch = run.get("fetch") or {}
+    limit = int(run["settings"]["per_source_limit"])
     for sid, info in run["sources"].items():
         result = fetch.get(sid) or {}
         if info.get("kind") != KIND_FEED or not result.get("ok") or not result.get("oldest"):
+            continue
+        if int(result.get("fetched", 0)) >= limit:
             continue
         if from_iso(result["oldest"]) > from_iso(info["start"]):
             out.append(

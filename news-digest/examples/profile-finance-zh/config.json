@@ -1,0 +1,7 @@
+{
+  "_comment": "示例 profile（中文财经）。`nd.py init --example finance-zh` 把它复制到 <pool>/profile/，之后改那一份。",
+  "name": "finance-zh",
+  "interests": "宏观经济与货币政策（央行、利率、汇率、通胀和就业数据）、A 股 / 港股 / 美股的重大行情与监管动向、上市公司财报与并购、大宗商品；不要：个股推荐、技术分析、行情播报流水账、理财广告",
+  "queries": ["A股", "美联储 利率", "人民币汇率", "央行 货币政策"],
+  "sources": ["rss", "wscn", "gnews"]
+}

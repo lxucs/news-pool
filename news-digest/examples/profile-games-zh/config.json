@@ -1,0 +1,7 @@
+{
+  "_comment": "示例 profile（中文游戏资讯）。`nd.py init --example games-zh` 把它复制到 <pool>/profile/，之后改那一份。这个示例自带 categories.json，替换内置的类别。",
+  "name": "games-zh",
+  "interests": "游戏行业：重要新作的公布、发售与销量，厂商财报、并购与裁员，版号与监管，主机和平台动态，有信息量的开发者访谈与行业分析；不要：攻略、礼包与活动推广、只有预告片或截图的稿子、八卦",
+  "queries": ["游戏 版号", "游戏 发售", "主机游戏"],
+  "sources": ["rss", "gnews"]
+}

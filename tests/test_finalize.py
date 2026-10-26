@@ -92,7 +92,9 @@ def test_finalize_writes_items_manifest_seen(
     )
     run = read_json_file(run_dir / "run.json")
     assert run["status"] == "finalized" and run["stage"] == "finalized"
-    assert "#1 [0.80]" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "#1 [0.80]" in out
+    assert out.splitlines()[-1] == f"[nd] run: {run_dir}"  # 汇报时要把运行目录告诉用户
 
 
 def test_events_below_threshold_are_not_written_but_are_seen(

@@ -1,4 +1,5 @@
-"""leads：为文本太少的保留 primary 抓取页面描述；写出 enrich_input.json。"""
+"""leads：为文本太少的保留 primary 抓取页面描述；写出 enrich_input.json。
+抓了也没有正文的事件记进 enrich_input.json 的 `no_text`，不写摘要、不落盘。"""
 
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ from .files import write_json_atomic
 from .net import FetchError, http_get
 from .normalize import domain_of, parse_tz
 from .pool import STAGE_LEADS, require_open, save_run
-from .validate import ENRICH_INPUT_FILE, load_context, require_valid_triage
+from .validate import ENRICH_INPUT_FILE, NO_TEXT_KEY, load_context, require_valid_triage
 
 LEADS_FILE = "leads.json"
 GOOGLE_NEWS_HOST = "news.google.com"
@@ -51,8 +52,13 @@ def cmd_leads(args: argparse.Namespace) -> int:
     write_json_atomic(ctx.run_dir / LEADS_FILE, found)
 
     items = []
+    no_text: list[str] = []
     for event in kept:
         rec = ctx.records[event["primary"]]
+        text = found.get(rec["id"], {}).get("lead") or rec["snippet"]
+        if not text:  # 抓了页面也没有正文：写不出摘要，这个事件不落盘
+            no_text.append(rec["id"])
+            continue
         items.append(
             {
                 "id": rec["id"],
@@ -62,7 +68,7 @@ def cmd_leads(args: argparse.Namespace) -> int:
                 "title_zh_required": rec["lang"] != "zh",
                 "published_at": rec["published_at"],
                 "category": event["category"],
-                "text": found.get(rec["id"], {}).get("lead") or rec["snippet"],
+                "text": text,
                 "related_titles": [
                     ctx.records[m]["title"] for m in event["members"] if m != event["primary"]
                 ],
@@ -70,17 +76,19 @@ def cmd_leads(args: argparse.Namespace) -> int:
         )
     write_json_atomic(
         ctx.run_dir / ENRICH_INPUT_FILE,
-        {"run_id": ctx.run["run_id"], "count": len(items), "items": items},
+        {"run_id": ctx.run["run_id"], "count": len(items), "items": items, NO_TEXT_KEY: no_text},
     )
     ctx.run["stage"] = STAGE_LEADS
     save_run(ctx.run_dir, ctx.run)
     fetched = "skipped (--no-fetch)" if args.no_fetch else f"{len(found)} of {len(thin)} found"
-    say(f"{len(items)} kept primaries; descriptions for thin ones: {fetched}")
+    say(f"{len(items)} primaries to summarize; descriptions for thin ones: {fetched}")
+    if no_text:
+        say(f"{len(no_text)} kept events still have no text; they are dropped, no summary needed")
     say(f"enrich input: {ctx.run_dir / ENRICH_INPUT_FILE}")
     if items:
         say("next: write enriched-1.jsonl (then -2, -3 … per batch), then check")
     else:
-        say(f"nothing was kept, so there is nothing to enrich; next: finalize --run {ctx.run_dir}")
+        say(f"nothing to summarize; next: finalize --run {ctx.run_dir}")
     return 0
 
 
