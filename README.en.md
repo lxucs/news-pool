@@ -50,16 +50,6 @@ None of them fits? Tell the agent what you care about (EVs, the NBA, drug develo
 
 <img src="docs/images/view.png" width="600" alt="The agent opens the reader">
 
-A typical session:
-
-> **You**: 抓今天的新闻 (fetch today's news)
->
-> **Agent**: *(runs the `nd.py` steps: 76 candidates from 7 sources, minus ones already seen and duplicates; filters by your interests into 20 events; writes summaries for the 12 it keeps)* Done: 12 stories, 9 AI, 2 semiconductors… The top 5 are… This run's directory is `~/.news-pool/runs/20261026-083015`. Open the reader?
->
-> **You**: 打开 (open it)
->
-> **Agent**: http://127.0.0.1:8765/
-
 In the reader, stories are grouped by the day they were fetched, most important first. Each one has a Chinese title, a one-line summary, a short synopsis, three key points and the other coverage of the same event. You can search; filter by category, tag or source; and star, hide, annotate or collect stories. There is a dark mode, `j` / `k` move between stories, and `?` lists every shortcut.
 
 ## Install
@@ -87,7 +77,7 @@ mkdir -p ~/.agents/skills
 ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.agents/skills/
 ```
 
-For other harnesses (WorkBuddy and so on), put them in that harness's skills directory; copying works too. With a manual install, `git pull` updates it.
+For other harnesses, put them in that harness's skills directory; copying works too. With a manual install, `git pull` updates it.
 
 Fetching needs network access, so a sandboxed harness (Codex, for example) may ask you to allow it. The reader only listens on 127.0.0.1.
 

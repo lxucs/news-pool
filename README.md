@@ -48,16 +48,6 @@
 
 <img src="docs/images/view.png" width="600" alt="agent 打开阅读器">
 
-一次典型的对话：
-
-> **你**：找下今天的新闻
->
-> **agent**：（依次运行 `nd.py` 的各个步骤：从 7 个源抓到 76 条候选，去掉看过的和重复的；按你的兴趣筛选，合并成 20 个事件；给保留的 12 条写摘要）收好了，12 条：AI 9 条、半导体 2 条……最重要的 5 条是……本次运行目录是 `~/.news-pool/runs/20261026-083015`。要打开阅读器看吗？
->
-> **你**：打开
->
-> **agent**：http://127.0.0.1:8765/
-
 阅读器里，新闻按抓取日期分组，最重要的排在前面，每条都有中文标题、一句话摘要、展开的一段、三条要点和同一事件的其他报道。你可以搜索，按类别、标签、来源筛选，也可以星标、隐藏不感兴趣的、写笔记、整理收藏夹；有深色模式，用 `j` / `k` 翻条目，按 `?` 看全部快捷键。
 
 ## 安装
@@ -83,9 +73,13 @@ ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.claude/skills/
 # Codex
 mkdir -p ~/.agents/skills
 ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.agents/skills/
+
+# WorkBuddy
+mkdir -p ~/.workbuddy/skills
+ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.workbuddy/skills/
 ```
 
-其他 harness（WorkBuddy 等）放进各自的 skills 目录即可，复制也行。手动安装的，以后 `git pull` 就是更新。
+其他 harness 放进各自的 skills 目录即可，复制也行。手动安装的，以后 `git pull` 就是更新。
 
 抓取需要联网，沙箱型的 harness（例如 Codex）可能会请你放行；Google News 等境外来源要有相应的网络环境。阅读器只监听 127.0.0.1。
 

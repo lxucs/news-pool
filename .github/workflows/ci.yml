@@ -1,4 +1,5 @@
 # 和 AGENTS.md「宣布完成之前」的检查一致：ruff、pyright、pytest（测试离线，不联网）。
+# setup-uv 从 v8 起不再发布 v10 这类大版本标签，只能写完整版本号。
 name: CI
 
 on:
@@ -18,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -39,7 +40,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked
