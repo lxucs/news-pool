@@ -12,7 +12,7 @@ from newsdigest import cli, fetch
 from newsdigest.config import load_settings
 from newsdigest.net import FetchError, Response
 from newsdigest.paths import EXAMPLE_PROFILE_DIR
-from newsdigest.pool import load_run
+from newsdigest.pool import load_run, save_run
 
 CST = timezone(timedelta(hours=8))
 NOW = datetime(2026, 10, 21, 8, 0, tzinfo=CST)
@@ -121,6 +121,26 @@ def test_search_urls_carry_query_and_window() -> None:
     assert "timespan=24h" in gdelt and "%22AI" in gdelt
     hn = fetch.search_url("hn", "AI", start, NOW, 50, settings)
     assert f"created_at_i%3E{int(start.timestamp())}" in hn
+    assert "points%3E%3D10" in hn  # 默认只要至少 10 分的帖子
+    settings["hn"]["min_points"] = 0
+    assert "points" not in fetch.search_url("hn", "AI", start, NOW, 50, settings)
+
+
+def test_search_sources_take_per_query_limit_from_each_query(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_dir = started_run(tmp_path / "p", "--only", "hn")
+    run = load_run(run_dir)
+    run["settings"]["per_query_limit"] = 2
+    run["settings"]["per_source_limit"] = 50  # 只管订阅源，不影响检索源
+    save_run(run_dir, run)
+    calls: list[str] = []
+    routes: Routes = {"https://hn.algolia.com/": fixture_bytes("hn_search.json")}
+    monkeypatch.setattr(fetch, "http_get", fake_http(routes, calls))
+    assert cli.main(["fetch", "--run", str(run_dir)]) == 0
+    assert len(calls) == 2 and all("hitsPerPage=2" in c for c in calls)
+    # 两条 query 拿到的是同一份 fixture，按 URL 去重后还是 2 条
+    assert len(_rows(run_dir / "candidates" / "hn.jsonl")) == 2
 
 
 def test_links_become_candidates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

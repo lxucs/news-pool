@@ -12,12 +12,11 @@ from .adapters import parse_article_page
 from .console import say
 from .files import write_json_atomic
 from .net import FetchError, http_get
-from .normalize import domain_of, parse_tz
+from .normalize import is_google_news, parse_tz
 from .pool import STAGE_LEADS, require_open, save_run
 from .validate import ENRICH_INPUT_FILE, NO_TEXT_KEY, load_context, require_valid_triage
 
 LEADS_FILE = "leads.json"
-GOOGLE_NEWS_HOST = "news.google.com"
 
 
 def register(sub: argparse._SubParsersAction) -> None:
@@ -101,8 +100,8 @@ def _lead(
         resp = http_get(record["url"], http, user_agent=http["article_user_agent"])
     except FetchError:
         return record["id"], nothing
-    if domain_of(resp.url) == GOOGLE_NEWS_HOST:  # 还停在 Google 的跳转页上
+    if is_google_news(resp.url):  # 还停在 Google 的跳转页上
         return record["id"], nothing
     page = parse_article_page(resp.text, resp.url, tz)
-    resolved = resp.url if domain_of(record["url"]) == GOOGLE_NEWS_HOST else ""
+    resolved = resp.url if is_google_news(record["url"]) else ""
     return record["id"], {"lead": page["snippet"], "resolved_url": resolved}

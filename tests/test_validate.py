@@ -50,6 +50,10 @@ def _unknown_id(doc: dict[str, Any], run_dir: Path) -> None:
     doc["drop"].append("ffffffffffff")
 
 
+def _position_as_id(doc: dict[str, Any], run_dir: Path) -> None:
+    doc["drop"].append("3")
+
+
 def _duplicate(doc: dict[str, Any], run_dir: Path) -> None:
     doc["drop"].append(id_for(run_dir, "bloomberg.com"))
 
@@ -79,6 +83,7 @@ def _bad_flag(doc: dict[str, Any], run_dir: Path) -> None:
     [
         (_drop_sports, "missing; put it in an event's members or in drop"),
         (_unknown_id, "unknown id"),
+        (_position_as_id, "not item positions"),
         (_duplicate, "appears 2 times"),
         (_primary_outside, "must be one of the event's members"),
         (_bad_category, "expected one of: AI, 半导体"),
@@ -96,6 +101,32 @@ def test_triage_problems_exit_3_with_located_messages(
     assert cli.main(["check", "--run", str(run_dir)]) == 3
     assert expected in capsys.readouterr().err
     assert read_json_file(run_dir / "errors.json")["count"] >= 1
+
+
+def _mark_related_only(run_dir: Path, *needles: str) -> None:
+    """像 prepare 对只有标题的 Google News 条目那样，把这些条目标成 related_only。"""
+    path = run_dir / "triage_input.json"
+    doc = read_json_file(path)
+    ids = {id_for(run_dir, needle) for needle in needles}
+    for item in doc["items"]:
+        item["related_only"] = item["id"] in ids
+    path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+
+
+def test_related_only_primary_is_rejected_when_another_member_can_be_primary(
+    run_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _mark_related_only(run_dir, "reuters.com")
+    write_triage(run_dir, sample_triage(run_dir))
+    assert cli.main(["check", "--run", str(run_dir)]) == 3
+    err = capsys.readouterr().err
+    assert "is related_only" in err and id_for(run_dir, "theverge.com") in err
+
+
+def test_event_made_only_of_related_only_items_passes_check(run_dir: Path) -> None:
+    _mark_related_only(run_dir, "techcrunch.com")  # 没有别的 member 可选：leads 之后自然被丢掉
+    write_triage(run_dir, sample_triage(run_dir))
+    assert cli.main(["check", "--run", str(run_dir)]) == 0
 
 
 def test_broken_json_reports_line_and_column(

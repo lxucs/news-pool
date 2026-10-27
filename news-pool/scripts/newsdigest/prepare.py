@@ -20,6 +20,7 @@ from .normalize import (
     detect_lang,
     domain_of,
     from_iso,
+    is_google_news,
     normalize_title,
     parse_time,
     parse_tz,
@@ -292,10 +293,17 @@ def _triage_input(run: dict[str, Any], fresh: list[dict[str, Any]]) -> dict[str,
                 "lang": r["lang"],
                 "published_at": r["published_at"],
                 "snippet": r["snippet"][:n],
+                "related_only": related_only(r),
             }
             for r in fresh
         ],
     }
+
+
+def related_only(record: dict[str, Any]) -> bool:
+    """Google News 的条目没有正文，链接又是 Google 的跳转地址，`leads` 也抓不到正文
+    （见 sources.md），所以只能当同一事件的其他报道，当不了要写摘要的 primary。"""
+    return not record["snippet"] and is_google_news(record["url"])
 
 
 def _truncation_warnings(run: dict[str, Any]) -> list[str]:

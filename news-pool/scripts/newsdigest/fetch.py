@@ -96,7 +96,8 @@ def _fetch_source(
     info: dict[str, Any], queries: list[str], settings: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], list[str], int]:
     """(候选行, 错误, 跳过的没有正文的行数)。订阅式来源先丢掉没有正文的行，再取
-    per_source_limit 条；检索式来源的条目本来就没有正文，原样交给 triage。"""
+    per_source_limit 条；检索式来源每条 query 取 per_query_limit 条，条目本来就没有正文，原样交给
+    triage。"""
     adapter = info["adapter"]
     try:
         if adapter == "rss":
@@ -133,7 +134,8 @@ def _search(
     adapter: str, info: dict[str, Any], queries: list[str], settings: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], list[str]]:
     start, end = from_iso(info["start"]), from_iso(info["end"])
-    limit = int(settings["per_source_limit"])
+    # 与订阅源的 per_source_limit 分开：检索源每条 query 各取这么多，总量随 query 数成倍增长。
+    limit = int(settings["per_query_limit"])
     rows: list[dict[str, Any]] = []
     errors: list[str] = []
     seen: set[str] = set()
@@ -165,12 +167,15 @@ def search_url(
         params = {"q": f"{query} when:{when}", "hl": g["hl"], "gl": g["gl"], "ceid": g["ceid"]}
         return f"{GNEWS_URL}?{urlencode(params)}"
     if adapter == "hn":
-        window = f"created_at_i>{int(start.timestamp())},created_at_i<{int(end.timestamp())}"
+        filters = [f"created_at_i>{int(start.timestamp())}", f"created_at_i<{int(end.timestamp())}"]
+        min_points = int(settings["hn"]["min_points"])
+        if min_points > 0:  # 刚提交、没人投票的帖子大多是噪声
+            filters.append(f"points>={min_points}")
         params = {
             "query": query,
             "tags": "story",
             "hitsPerPage": min(limit, HN_MAX_HITS),
-            "numericFilters": window,
+            "numericFilters": ",".join(filters),
         }
         return f"{HN_URL}?{urlencode(params)}"
     if adapter == "gdelt":

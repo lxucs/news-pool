@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import re
 from collections import Counter
+from collections.abc import Set
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -70,6 +71,7 @@ class RunContext:
     run: dict[str, Any]
     records: dict[str, dict[str, Any]]
     input_ids: list[str]
+    related_only: set[str]  # triage_input.json 里标了 related_only 的 id
     categories: list[str]
     min_importance: float
     vocab: set[str]
@@ -86,6 +88,7 @@ def load_context(run_arg: str) -> RunContext:
         run=run,
         records={r["id"]: r for r in read_json(run_dir / RECORDS_FILE)},
         input_ids=[item["id"] for item in triage_input["items"]],
+        related_only={item["id"] for item in triage_input["items"] if item.get("related_only")},
         categories=category_names(load_categories(Path(run["resources"][CATEGORIES_FILE]))),
         min_importance=float(settings["min_importance"]),
         vocab=load_tags(Path(run["resources"][TAGS_FILE])),
@@ -120,11 +123,11 @@ def load_triage(ctx: RunContext) -> tuple[Triage | None, list[Problem]]:
         doc = load_agent_json(path)
     except AgentJsonError as exc:
         return None, [from_json_problem(exc.problem)]
-    return check_triage(doc, ctx.input_ids, ctx.categories)
+    return check_triage(doc, ctx.input_ids, ctx.categories, ctx.related_only)
 
 
 def check_triage(
-    doc: Any, input_ids: list[str], categories: list[str]
+    doc: Any, input_ids: list[str], categories: list[str], related_only: Set[str]
 ) -> tuple[Triage | None, list[Problem]]:
     problems: list[Problem] = []
 
@@ -149,14 +152,15 @@ def check_triage(
         if not isinstance(ev, dict):
             bad("", where, "must be an object")
             continue
-        event, members = _check_event(ev, where, categories, bad)
+        event, members = _check_event(ev, where, categories, related_only, bad)
         counts.update(members)
         if event is not None:
             events.append(event)
     known = set(input_ids)
     for rid, n in counts.items():
         if rid not in known:
-            bad(rid, "", "unknown id (not in triage_input.json)")
+            hint = "; ids are the `id` strings there, not item positions" if rid.isdigit() else ""
+            bad(rid, "", f"unknown id (not in triage_input.json){hint}")
         elif n > 1:
             bad(rid, "", f"appears {n} times; each id belongs to exactly one event or to drop")
     for rid in input_ids:
@@ -166,7 +170,11 @@ def check_triage(
 
 
 def _check_event(
-    ev: dict[str, Any], where: str, categories: list[str], bad: Callable[[str, str, str], None]
+    ev: dict[str, Any],
+    where: str,
+    categories: list[str],
+    related_only: Set[str],
+    bad: Callable[[str, str, str], None],
 ) -> tuple[dict[str, Any] | None, list[str]]:
     ok = True
     members = ev.get("members")
@@ -182,6 +190,17 @@ def _check_event(
     elif pid not in members:
         bad(pid, f"{where}.primary", "must be one of the event's members")
         ok = False
+    elif pid in related_only:
+        # 全是 related_only 的事件不报错：leads 之后它没有正文，自然被丢掉。
+        others = [m for m in members if m not in related_only]
+        if others:
+            bad(
+                pid,
+                f"{where}.primary",
+                "is related_only (a headline with no text; `leads` can't fetch any), so the event "
+                f"would be dropped; make one of these members the primary: {', '.join(others)}",
+            )
+            ok = False
     category = ev.get("category")
     if category not in categories:
         expected = ", ".join(categories)

@@ -46,6 +46,7 @@ def test_sample_counts_tiers_and_triage_input(
     techcrunch = by_id[id_for(run_dir, "techcrunch.com")]
     assert (techcrunch["tier"], techcrunch["lang"], techcrunch["source"]) == (2, "en", "TechCrunch")
     assert all(len(i["snippet"]) <= 120 for i in items)
+    assert not any(i["related_only"] for i in items)  # 都有正文，都能当 primary
 
 
 def test_title_duplicates_keep_the_more_authoritative_copy(
@@ -217,6 +218,9 @@ def test_rows_without_text_are_dropped_except_from_search_sources(
     assert cli.main(["prepare", "--run", str(run_dir)]) == 0
     assert [r["source_id"] for r in read_json_file(run_dir / "records.json")] == ["gnews"]
     assert load_run(run_dir)["stats"]["no_text"] == 1
+    # 只有标题的 Google News 条目交给 triage，但标明它只能当同一事件的其他报道
+    items = read_json_file(run_dir / "triage_input.json")["items"]
+    assert [i["related_only"] for i in items] == [True]
 
 
 def test_cap_keeps_the_newest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -10,6 +10,7 @@ from email.utils import parsedate_to_datetime
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 ID_HEX_CHARS = 12  # schema：条目 id = sha1(规范化 URL) 的前 12 位十六进制
+GOOGLE_NEWS_HOST = "news.google.com"  # Google News 条目的链接是这里的跳转地址
 
 TRACKING_PARAMS = frozenset(
     {
@@ -178,6 +179,10 @@ def domain_of(url: str) -> str:
         return ""
     host = host.lower()
     return host[4:] if host.startswith("www.") else host
+
+
+def is_google_news(url: str) -> bool:
+    return domain_of(url) == GOOGLE_NEWS_HOST
 
 
 def normalize_title(title: str) -> str:
