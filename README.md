@@ -1,6 +1,6 @@
 # news-pool
 
-**让你已经在用的 AI agent（Codex、Claude Code、WorkBuddy……）每天替你读新闻。** 它从订阅源和新闻检索里抓取新闻，筛掉无关的，合并重复的，按重要性打分，写好中文摘要，存成本地文件，你在浏览器里阅读。整个流程都在 agent 里完成，用的是你已经订阅的套餐额度：**不需要 API key，不按量付费。**
+**让你已经在用的 AI agent（Codex、Claude Code、WorkBuddy……）每天替你筛选新闻。** 它从订阅源和新闻检索里抓取新闻，筛掉无关的，合并重复的，按重要性打分，写好中文摘要，存成本地文件，你在浏览器里阅读。整个流程都在 agent 里完成，用的是你已经订阅的套餐额度：**不需要 API key，不按量付费。**
 
 [![CI](https://github.com/lxucs/news-pool/actions/workflows/ci.yml/badge.svg)](https://github.com/lxucs/news-pool/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -10,7 +10,7 @@
 
 中文 | [English](README.en.md)
 
-<img src="docs/images/browser.png" width="600" alt="阅读器：左边是收进来的新闻，右边是打开的一条">
+<img src="docs/images/browser.png" width="800" alt="阅读器：左边是收进来的新闻，右边是打开的一条">
 
 ## 为什么用这个 skill
 
@@ -44,9 +44,7 @@
 
 ## 用起来是什么样
 
-<img src="docs/images/digest.png" width="600" alt="在 WorkBuddy 里让 agent 找今天的 AI 新闻，它汇报运行结果和 Top 5">
-
-<img src="docs/images/view.png" width="600" alt="agent 打开阅读器">
+<img src="docs/images/agent.png" width="600" alt="在 WorkBuddy 里让 agent 找今天的 AI 新闻，它汇报运行结果">
 
 阅读器里，新闻按抓取日期分组，最重要的排在前面，每条都有中文标题、一句话摘要、展开的一段、三条要点和同一事件的其他报道。你可以搜索，按类别、标签、来源筛选，也可以星标、隐藏不感兴趣的、写笔记、整理收藏夹；有深色模式，用 `j` / `k` 翻条目，按 `?` 看全部快捷键。
 
@@ -92,14 +90,6 @@ ln -s "$PWD/news-pool" ~/.workbuddy/skills/
 其他 harness 放进各自的 skills 目录即可，复制也行。手动安装的，以后 `git pull` 就是更新。
 
 抓取需要联网，沙箱型的 harness（例如 Codex）可能会请你放行；Google News 等来源要有相应的网络环境。阅读器只监听 127.0.0.1。
-
-### 从两个 skill 升级
-
-以前的版本是 news-digest 和 news-viewer 两个 skill，现在合成了一个 news-pool。新闻池（`~/.news-pool`）里的东西都不用动：profile、星标、笔记都还在。
-
-- 插件：在终端里运行 `claude plugin update news-pool@news-pool`。
-- `npx skills`：重新运行 `npx skills add lxucs/news-pool`，再从 skills 目录里删掉旧的 `news-digest` 和 `news-viewer`，否则 agent 还会用到旧的那两个。
-- 手动安装：`git pull`，删掉 skills 目录里指向 `news-digest`、`news-viewer` 的两个链接，再按上面的命令链接 `news-pool`。
 
 ## 使用
 

@@ -1,6 +1,6 @@
 # news-pool
 
-**Let the AI agent you already pay for (Codex, Claude Code, WorkBuddy…) read the news for you every day.** It pulls stories from feeds and news search, drops what you don't care about, merges duplicate coverage, ranks by importance and writes a summary for each story. The results are saved as local files that you read in your browser. The whole pipeline runs inside the agent on your existing subscription: **no API key, no pay-per-use billing.**
+**Let the AI agent you already pay for (Codex, Claude Code, WorkBuddy…) sift through the news for you every day.** It pulls stories from feeds and news search, drops what you don't care about, merges duplicate coverage, ranks by importance and writes a summary for each story. The results are saved as local files that you read in your browser. The whole pipeline runs inside the agent on your existing subscription: **no API key, no pay-per-use billing.**
 
 [![CI](https://github.com/lxucs/news-pool/actions/workflows/ci.yml/badge.svg)](https://github.com/lxucs/news-pool/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -10,7 +10,7 @@
 
 [中文](README.md) | English
 
-<img src="docs/images/browser.png" width="600" alt="The reader: today's stories on the left, one opened on the right">
+<img src="docs/images/browser.png" width="800" alt="The reader: today's stories on the left, one opened on the right">
 
 > The skill, summaries and reader UI are in Chinese: the project is built for Chinese-language news and Chinese readers. The pipeline itself is language-neutral, and English sources are summarized in Chinese.
 
@@ -46,9 +46,7 @@ None of them fits? Tell the agent what you care about (EVs, the NBA, drug develo
 
 ## What it looks like
 
-<img src="docs/images/digest.png" width="600" alt="Asking the agent in WorkBuddy for today's AI news; it reports the run and the top 5">
-
-<img src="docs/images/view.png" width="600" alt="The agent opens the reader">
+<img src="docs/images/agent.png" width="600" alt="Asking the agent in WorkBuddy for today's AI news; it reports the run">
 
 In the reader, stories are grouped by the day they were fetched, most important first. Each one has a Chinese title, a one-line summary, a short synopsis, three key points and the other coverage of the same event. You can search; filter by category, tag or source; and star, hide, annotate or collect stories. There is a dark mode, `j` / `k` move between stories, and `?` lists every shortcut.
 
@@ -94,14 +92,6 @@ ln -s "$PWD/news-pool" ~/.workbuddy/skills/
 For other harnesses, put it in that harness's skills directory; copying works too. With a manual install, `git pull` updates it.
 
 Fetching needs network access, so a sandboxed harness (Codex, for example) may ask you to allow it, and sources such as Google News need a network that can reach them. The reader only listens on 127.0.0.1.
-
-### Upgrading from two skills
-
-Earlier versions were two skills, news-digest and news-viewer; they are now one skill, news-pool. Nothing in the pool (`~/.news-pool`) needs to change: your profile, stars and notes are all still there.
-
-- Plugin: run `claude plugin update news-pool@news-pool` in your terminal.
-- `npx skills`: run `npx skills add lxucs/news-pool` again, then delete the old `news-digest` and `news-viewer` from your skills directory, or the agent will keep using them.
-- Manual install: `git pull`, remove the two links to `news-digest` and `news-viewer` from your skills directory, and link `news-pool` with the command above.
 
 ## Use
 

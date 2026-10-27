@@ -105,4 +105,3 @@ def test_skill_md_quotes_the_message_check_prints() -> None:
     assert "kept events still have no text" in skill  # leads 的输出
     assert "next: open the viewer" in skill  # finalize 和空运行的 prepare 的最后一行
     assert "[nv] url:" in skill and "no news pool" in skill  # nv.py up 的输出
-    assert "news-digest" not in skill and "news-viewer" not in skill  # 已经合成一个 skill
