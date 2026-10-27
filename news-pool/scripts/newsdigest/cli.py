@@ -26,7 +26,9 @@ class NdParser(argparse.ArgumentParser):
 
 
 def build_parser() -> NdParser:
-    parser = NdParser(prog="nd.py", description="news-digest: deterministic pipeline steps")
+    parser = NdParser(
+        prog="nd.py", description="nd.py: deterministic steps that collect news into the pool"
+    )
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command", parser_class=NdParser)
     sub.required = True

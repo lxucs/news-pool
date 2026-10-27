@@ -1,9 +1,0 @@
-{
-  "_comment": "内置默认值。<pool>/viewer/config.json 可以覆盖任何键（合并规则与 news-digest 相同）。idle_minutes 为 0 表示不自动退出。",
-  "port": 8765,
-  "idle_minutes": 120,
-  "heartbeat_s": 60,
-  "start_timeout_s": 10,
-  "refresh_s": 2,
-  "page_size": 50
-}

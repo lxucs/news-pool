@@ -245,7 +245,8 @@ def test_no_new_candidates_finalizes_an_empty_run(
     assert read_json_file(run_dir / "manifest.json")["items"] == []
     assert (run_dir / "seen.txt").read_text(encoding="utf-8") == ""
     out = capsys.readouterr().out
-    assert "no new candidates" in out and out.splitlines()[-1] == f"[nd] run: {run_dir}"
+    assert "no new candidates" in out
+    assert out.splitlines()[-2:] == [f"[nd] run: {run_dir}", "[nd] next: open the viewer: nv.py up"]
 
 
 def test_prepare_before_fetch_is_a_usage_error(

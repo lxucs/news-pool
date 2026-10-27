@@ -1,7 +1,7 @@
 [project]
 name = "news-pool"
 version = "0.1.0"
-description = "news-digest 新闻收集 skill 及其阅读器 news-viewer"
+description = "news-pool：每天收新闻、写中文摘要、在浏览器里阅读的 agent skill"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = []
@@ -16,7 +16,7 @@ package = false
 line-length = 100
 target-version = "py39"
 # 排序 import 时把 `newsdigest` 和 `newsviewer` 算作本项目的包。
-src = ["news-digest/scripts", "news-viewer/scripts"]
+src = ["news-pool/scripts"]
 extend-exclude = [
     "tests/fixtures",
     # 设计文档原样引用计划里的代码，ruff 会重排其中的 Python 代码块。
@@ -28,11 +28,11 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 
 [tool.pyright]
 pythonVersion = "3.9"
-include = ["news-digest/scripts", "news-viewer/scripts", "tests"]
+include = ["news-pool/scripts", "tests"]
 exclude = ["tests/fixtures"]
-extraPaths = ["news-digest/scripts", "news-viewer/scripts", "tests"]
+extraPaths = ["news-pool/scripts", "tests"]
 typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
-pythonpath = ["news-digest/scripts", "news-viewer/scripts"]
+pythonpath = ["news-pool/scripts"]
 testpaths = ["tests"]

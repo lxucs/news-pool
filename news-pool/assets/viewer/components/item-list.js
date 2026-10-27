@@ -10,7 +10,7 @@ const VIEW_TITLES = {
   hidden: "已隐藏",
 };
 const EMPTY_TEXT = {
-  latest: "新闻池里还没有新闻：先用 news-digest 抓一次",
+  latest: "新闻池里还没有新闻：先让 agent 抓一次新闻",
   unread: "都读完了",
   starred: "还没有星标的新闻（打开一条，按 s）",
   notes: "还没有写过笔记",

@@ -1,4 +1,4 @@
-"""阅读器测试的构造工具：按 news-digest 的 schema.md 描述的格式在磁盘上搭建新闻池。"""
+"""阅读器测试的构造工具：按 references/schema.md 描述的格式在磁盘上搭建新闻池。"""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def item_doc(
     source_name: str = "来源甲",
     **fields: Any,
 ) -> dict[str, Any]:
-    """news-digest 的 finalize 写出的条目（见 schema.md「条目」）；`fields` 覆盖对应的键。"""
+    """nd.py finalize 写出的条目（见 schema.md「条目」）；`fields` 覆盖对应的键。"""
     doc: dict[str, Any] = {
         "schema_version": "2.1",
         "id": item_id,

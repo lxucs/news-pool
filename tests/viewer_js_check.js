@@ -1,25 +1,25 @@
 // 由 tests/test_viewer_static.py 在 macOS 的 JavaScriptCore shell（`jsc -m`）下运行。
 // 加载这个模块图，就会解析阅读器的每个模块、核对每个导入的名字；正文编译每个组件的模板，
 // 并调用纯函数工具做检查。不用 DOM，不联网。
-import { compile } from "../news-viewer/scripts/newsviewer/static/vendor/vue.esm-browser.prod.js";
-import AppRoot from "../news-viewer/scripts/newsviewer/static/components/app-root.js";
-import CollectionsMenu from "../news-viewer/scripts/newsviewer/static/components/collections-menu.js";
-import HelpOverlay from "../news-viewer/scripts/newsviewer/static/components/help.js";
-import Hl from "../news-viewer/scripts/newsviewer/static/components/highlight.js";
-import ItemList from "../news-viewer/scripts/newsviewer/static/components/item-list.js";
-import NoteEditor from "../news-viewer/scripts/newsviewer/static/components/note-editor.js";
-import ReaderPane from "../news-viewer/scripts/newsviewer/static/components/reader.js";
-import SideNav from "../news-viewer/scripts/newsviewer/static/components/sidebar.js";
-import ToastBar from "../news-viewer/scripts/newsviewer/static/components/toast.js";
-import TopBar from "../news-viewer/scripts/newsviewer/static/components/topbar.js";
-import { emptyRoute, parseHash, toHash } from "../news-viewer/scripts/newsviewer/static/router.js";
+import { compile } from "../news-pool/assets/viewer/vendor/vue.esm-browser.prod.js";
+import AppRoot from "../news-pool/assets/viewer/components/app-root.js";
+import CollectionsMenu from "../news-pool/assets/viewer/components/collections-menu.js";
+import HelpOverlay from "../news-pool/assets/viewer/components/help.js";
+import Hl from "../news-pool/assets/viewer/components/highlight.js";
+import ItemList from "../news-pool/assets/viewer/components/item-list.js";
+import NoteEditor from "../news-pool/assets/viewer/components/note-editor.js";
+import ReaderPane from "../news-pool/assets/viewer/components/reader.js";
+import SideNav from "../news-pool/assets/viewer/components/sidebar.js";
+import ToastBar from "../news-pool/assets/viewer/components/toast.js";
+import TopBar from "../news-pool/assets/viewer/components/topbar.js";
+import { emptyRoute, parseHash, toHash } from "../news-pool/assets/viewer/router.js";
 import {
   dayLabel,
   runLabel,
   safeUrl,
   segments,
   shortTime,
-} from "../news-viewer/scripts/newsviewer/static/util.js";
+} from "../news-pool/assets/viewer/util.js";
 
 // 模板里只要有 "&"（如 `a && b`），Vue 就会借一个 DOM 元素来解码 HTML 实体；jsc 没有 DOM，
 // 所以替它模拟这唯一的一次调用。

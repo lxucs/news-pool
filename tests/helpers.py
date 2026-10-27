@@ -11,10 +11,9 @@ import pytest
 
 from newsdigest import cli, clock
 from newsdigest.net import decode_body
-from newsdigest.paths import SKILL_DIR
 
 FIXTURES = Path(__file__).parent / "fixtures"
-SAMPLE = SKILL_DIR / "examples" / "raw_sample.jsonl"
+SAMPLE = Path(__file__).parent / "raw_sample.jsonl"
 CST = timezone(timedelta(hours=8))
 SAMPLE_NOW = datetime(2026, 10, 21, 0, 0, tzinfo=CST)  # raw_sample.jsonl 的日期是 2026-10-20
 
@@ -90,7 +89,7 @@ def set_fetched(run_dir: Path, fetch: dict[str, Any]) -> None:
 
 
 def prepared_run(pool: Path, monkeypatch: pytest.MonkeyPatch, *start_args: str) -> Path:
-    """把 examples/raw_sample.jsonl 当作 manual 候选的一次运行，已跑到 `prepare`。"""
+    """把 tests/raw_sample.jsonl 当作 manual 候选的一次运行，已跑到 `prepare`。"""
     pin_clock(monkeypatch, SAMPLE_NOW)
     run_dir = started_run(pool, "--only", "none", "--hours", "48", *start_args)
     write_candidates(run_dir, "manual", SAMPLE.read_text(encoding="utf-8"))

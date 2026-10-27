@@ -9,7 +9,7 @@
     {
       "name": "news-pool",
       "source": "./",
-      "description": "news-digest 每天收集新闻并写中文摘要，news-viewer 在浏览器里阅读、搜索和标记。不需要 API key，只用 Python 标准库。",
+      "description": "每天收集新闻并写中文摘要，收完直接在浏览器里阅读、搜索和标记。一个 skill，不需要 API key，只用 Python 标准库。",
       "author": {
         "name": "lxucs",
         "url": "https://github.com/lxucs"
@@ -19,7 +19,7 @@
       "license": "MIT",
       "keywords": ["news", "rss", "digest", "summary", "reader", "chinese"],
       "category": "productivity",
-      "skills": ["./news-digest", "./news-viewer"]
+      "skills": ["./news-pool"]
     }
   ]
 }

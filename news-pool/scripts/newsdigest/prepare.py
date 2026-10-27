@@ -27,6 +27,7 @@ from .normalize import (
     title_tokens,
     url_id,
 )
+from .paths import viewer_hint
 from .pool import (
     STAGE_FETCHED,
     STAGE_PREPARED,
@@ -241,6 +242,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
         )
         say("no new candidates; the run is finalized with an empty digest")
         say(f"run: {run_dir}")
+        say(viewer_hint(None))
         return 0
     say(f"triage input: {run_dir / TRIAGE_INPUT_FILE}")
     say(f"next: write triage.json (rules: references/taxonomy.md), then check --run {run_dir}")

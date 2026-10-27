@@ -16,7 +16,7 @@ def run(capsys: pytest.CaptureFixture[str], *argv: str) -> tuple[int, str, str]:
 
 def test_a_missing_pool_exits_1(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     code, _, err = run(capsys, "up", "--pool", str(tmp_path / "none"))
-    assert code == 1 and "news-digest" in err
+    assert code == 1 and "nd.py start" in err
 
 
 def test_bad_arguments_exit_1(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

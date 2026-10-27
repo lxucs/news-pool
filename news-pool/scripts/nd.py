@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""news-digest 命令行。流程见 ../SKILL.md，命令见 `nd.py --help`。"""
+"""收新闻的命令行。流程见 ../SKILL.md，命令见 `nd.py --help`。"""
 
 import os
 import sys

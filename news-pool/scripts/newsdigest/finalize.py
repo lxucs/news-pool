@@ -10,6 +10,7 @@ from .console import say, warn
 from .files import read_json
 from .leads import LEADS_FILE
 from .normalize import domain_of, parse_tz
+from .paths import viewer_hint
 from .pool import (
     KIND_DAILY,
     MANIFEST_FILE,
@@ -155,3 +156,4 @@ def _report(ctx: RunContext, manifest: dict[str, Any]) -> None:
         warn(message)
     say(f"manifest: {ctx.run_dir / MANIFEST_FILE}")
     say(f"run: {ctx.run_dir}")
+    say(viewer_hint(manifest["run_id"] if stats["items"] else None))

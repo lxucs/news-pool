@@ -16,27 +16,28 @@
 
 - **脚本不做任何语义判断。** 相关性、分组、打分和摘要都归 agent：agent 写进文件，脚本校验。永远不要加大模型 API 调用。
 - **新闻池只增不改。** 条目文件和已 finalize 的运行只写一次，一律经由 `files.write_*_atomic`；已 finalize 的运行永远不再修改。不要维护共享的可变索引：视图从已 finalize 的 manifest 推导出来。
-- **每条规则只有一个归属。** news-digest 里：URL、时间和时区的规范化在 `normalize.py`；HTTP 在 `net.py`；响应解析在 `adapters.py`（纯函数：文本进，行出）；新闻池的约定（运行、覆盖范围、seen、时间窗、提交）在 `pool.py`。news-viewer 里：读新闻池在 `poolread.py`；条目索引和所有列表、搜索查询在 `index.py`；用户数据及其迁移在 `userdb.py`；路由和请求检查在 `api.py`（纯函数，测试不需要 socket）；服务进程在 `lifecycle.py`。
-- **阅读器只读新闻池。** 它只在 `<pool>/viewer/` 里写东西，也从不 import `newsdigest`。
-- **news-digest 的一个命令 = 所在模块里的 `register(sub)` 加 `cmd_*(args) -> int`**，并列入 `cli.COMMAND_MODULES`。news-viewer 的四个命令（`up`、`serve`、`down`、`status`）都在它的 `cli.py` 里。
+- **每条规则只有一个归属。** 收新闻（`newsdigest`）里：URL、时间和时区的规范化在 `normalize.py`；HTTP 在 `net.py`；响应解析在 `adapters.py`（纯函数：文本进，行出）；新闻池的约定（运行、覆盖范围、seen、时间窗、提交）在 `pool.py`。阅读器（`newsviewer`）里：读新闻池在 `poolread.py`；条目索引和所有列表、搜索查询在 `index.py`；用户数据及其迁移在 `userdb.py`；路由和请求检查在 `api.py`（纯函数，测试不需要 socket）；服务进程在 `lifecycle.py`。
+- **阅读器只读新闻池。** 它只在 `<pool>/viewer/` 里写东西。`newsviewer` 从不 import `newsdigest`，反过来也一样（`tests/test_packaging.py` 检查）；两边需要同一条规则时（例如新闻池的位置），各写一份。唯一的衔接是输出：一次运行落盘之后，`nd.py` 打印打开阅读器的命令（`newsdigest.paths.viewer_hint`），由 agent 去运行 `nv.py`。
+- **nd.py 的一个命令 = 所在模块里的 `register(sub)` 加 `cmd_*(args) -> int`**，并列入 `cli.COMMAND_MODULES`。nv.py 的四个命令（`up`、`serve`、`down`、`status`）都在它的 `cli.py` 里。
 - **新增或改名 skill 时同步 `.claude-plugin/marketplace.json` 的 `skills`**：Claude Code 插件和 `npx skills` 都按它安装（`tests/test_packaging.py` 会检查）。改完用 `claude plugin validate .` 校验。
-- **失败映射到退出码**（`errors.py`）：抛出 `UsageError`（1）、`ValidationFailed`（3）或 `AllSourcesFailed`（4）。`cli.main` 把 `PermissionError`（新闻池不可写）映射为 1；其他异常一律是 5，traceback 写进 `nd-error.log`。`SKILL.md` 告诉 agent 每个退出码该怎么处理，所以新的失败类型要么沿用已有的退出码，要么同时更新 `SKILL.md`。news-viewer 用 1（`UsageError`）和 5（`StartFailed`、内部错误）。
+- **`SKILL.md` 的 frontmatter 恰好五项**：`name`、`slug`、`displayName`、`version`、`description`（SkillHub 要 `slug`、`displayName` 和 `version`）。`description` 是写给 agent 看的，决定什么时候用这个 skill，所以要写触发它的说法，收新闻和读新闻的都要有；`displayName` 展示给用户。`slug` 和 `name` 相同；`version` 和 `newsdigest`、`newsviewer` 的 `__version__` 一起改（`tests/test_packaging.py` 会检查）。
+- **失败映射到退出码**（`errors.py`）：抛出 `UsageError`（1）、`ValidationFailed`（3）或 `AllSourcesFailed`（4）。`cli.main` 把 `PermissionError`（新闻池不可写）映射为 1；其他异常一律是 5，traceback 写进 `nd-error.log`。`SKILL.md` 告诉 agent 每个退出码该怎么处理，所以新的失败类型要么沿用已有的退出码，要么同时更新 `SKILL.md`。nv.py 用 1（`UsageError`）和 5（`StartFailed`、内部错误）。
 
 ## 改格式
 
 新闻池的格式是和阅读器之间的约定。条目、manifest、`run.json`、`triage.json` 或 `enriched-*.jsonl` 的字段有变化时：
 
 1. 如果现有的读取方会因此出错，提升 `newsdigest/__init__.py` 里的 `SCHEMA_VERSION`；
-2. 更新 `news-digest/references/schema.md`；如果这个字段由 agent 来写，也更新 `SKILL.md`；
-3. 在同一次改动里更新阅读器（`news-viewer/scripts/newsviewer/poolread.py`、`index.py`），并保证 `tests/test_viewer_index.py` 里的契约测试通过。
+2. 更新 `news-pool/references/schema.md`；如果这个字段由 agent 来写，也更新 `SKILL.md`；
+3. 在同一次改动里更新阅读器（`news-pool/scripts/newsviewer/poolread.py`、`index.py`），并保证 `tests/test_viewer_index.py` 里的契约测试通过。
 
 ## 配置
 
 ### 不写死数值
 
-用户可能想调的值都从 `news-digest/references/defaults.json` 读取（可以在 profile 里覆盖），不要在函数中间写字面量：时间窗、上限、超时、重试、截断长度、阈值、User-Agent。
+用户可能想调的值都从 `news-pool/references/defaults.json` 读取（可以在 profile 里覆盖），不要在函数中间写字面量：时间窗、上限、超时、重试、截断长度、阈值、User-Agent。
 
-阅读器的可调参数在 `news-viewer/references/defaults.json`，可以在 `<pool>/viewer/config.json` 里覆盖；页面自己用的参数（`heartbeat_s`、`page_size`）从 `/api/meta` 获取。
+阅读器的可调参数在 `news-pool/references/viewer-defaults.json`，可以在 `<pool>/viewer/config.json` 里覆盖；页面自己用的参数（`heartbeat_s`、`page_size`）从 `/api/meta` 获取。
 
 ```python
 # 错：埋在代码里，找不到，不改代码就改不了
@@ -59,12 +60,12 @@ snippet = snippet[: int(settings["snippet_max_chars"])]
 - 进度用 `console.say`（stdout 上的 `[nd] …` / `[nv] …`），不阻断流程的提示用 `console.warn`，失败用 `console.error`（stderr）。其他地方不要裸用 `print`，也不要配置 `logging`。
 - 一行一个事实。成功的步骤以 `next: …` 结尾，写出下一条要运行的确切命令。
 - 错误要说明哪里不对、在哪里（`file:line`、id、字段）、期望的是什么。
-- 输出用英文：`SKILL.md` 原样引用了其中一些行（`next:`、`no new candidates`、`[nv] url:` 等），改输出时同步改 `SKILL.md`。
+- 输出用英文：`SKILL.md` 原样引用了其中一些行（`next: open the viewer`、`no new candidates`、`[nv] url:` 等），改输出时同步改 `SKILL.md`（`tests/test_cli_core.py` 检查其中几行）。
 - **不打印任何敏感信息。** 永远不要打印凭据、cookie 或私有端点；如果将来它们变得可配置，打印环境变量的*名字*，不打印值。
 
 ## 阅读器的页面
 
-- 没有构建步骤：纯 HTML、CSS 和原生 JS 模块；Vue 用内置的 ES 模块构建（`static/vendor/README.md` 说明怎么升级）。
+- 没有构建步骤：纯 HTML、CSS 和原生 JS 模块；Vue 用内置的 ES 模块构建（`assets/viewer/vendor/README.md` 说明怎么升级）。
 - 界面文字用中文。
 - 抓来的文本不可信：永远不用 `v-html` 或 `innerHTML`；链接和图片一律经过 `safeUrl`（只允许 http 和 https），用 `rel="noopener noreferrer"` 打开。
 - 页面的可调参数来自 `/api/meta`，不写字面量。

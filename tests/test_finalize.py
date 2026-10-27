@@ -94,7 +94,11 @@ def test_finalize_writes_items_manifest_seen(
     assert run["status"] == "finalized" and run["stage"] == "finalized"
     out = capsys.readouterr().out
     assert "#1 [0.80]" in out
-    assert out.splitlines()[-1] == f"[nd] run: {run_dir}"  # 汇报时要把运行目录告诉用户
+    # 汇报时要把运行目录告诉用户，然后直接打开阅读器看这次运行
+    assert out.splitlines()[-2:] == [
+        f"[nd] run: {run_dir}",
+        f"[nd] next: open the viewer: nv.py up --run {run_dir.name}",
+    ]
 
 
 def test_events_below_threshold_are_not_written_but_are_seen(
@@ -203,6 +207,8 @@ def test_nothing_kept_goes_check_leads_check_finalize(
     step = next_step(run_dir, load_run(run_dir))
     assert "finalize" in step and "enriched" not in step
     assert cli.main(["finalize", "--run", str(run_dir)]) == 0
+    # 什么都没收进来：打开整个新闻池，而不是一次空运行
+    assert capsys.readouterr().out.splitlines()[-1] == "[nd] next: open the viewer: nv.py up"
     assert read_json_file(run_dir / "manifest.json")["items"] == []
     seen = (run_dir / "seen.txt").read_text(encoding="utf-8").splitlines()
     assert sorted(seen) == sorted(f"{rid} dropped" for rid in ids)

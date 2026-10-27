@@ -248,10 +248,10 @@ def test_marks_survive_a_restart(pool: Path) -> None:
     second.close()
 
 
-def test_the_viewer_reads_a_pool_written_by_news_digest(
+def test_the_viewer_reads_a_pool_written_by_nd_py(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """契约测试：两个 skill 一旦对不上，这里就会失败。"""
+    """契约测试：nd.py 写的和阅读器读的一旦对不上，这里就会失败。"""
     pool = tmp_path / "p"
     run_dir = prepared_run(pool, monkeypatch)
     write_triage(run_dir, sample_triage(run_dir))

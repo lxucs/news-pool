@@ -32,7 +32,7 @@ def test_pool_resolution_prefers_the_flag_then_the_environment(
 
 
 def test_a_missing_pool_is_a_usage_error(tmp_path: Path) -> None:
-    with pytest.raises(UsageError, match="news-digest"):
+    with pytest.raises(UsageError, match="nd.py start"):
         existing_pool(str(tmp_path / "nope"))
 
 

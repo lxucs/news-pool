@@ -1,4 +1,4 @@
-"""按 news-digest 的 schema.md 的约定读取新闻池：已 finalize 的运行、它们的 manifest、条目文件。
+"""按 references/schema.md 的约定读取新闻池：已 finalize 的运行、它们的 manifest、条目文件。
 阅读器从不往这里写。读不了的内容一律跳过、绝不崩溃：不存在的文件直接跳过，损坏的文件
 记一条警告（进 server.log）。"""
 

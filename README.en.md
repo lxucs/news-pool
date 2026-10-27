@@ -12,7 +12,7 @@
 
 <img src="docs/images/browser.png" width="600" alt="The reader: today's stories on the left, one opened on the right">
 
-> The skills, summaries and reader UI are in Chinese: the project is built for Chinese-language news and Chinese readers. The pipeline itself is language-neutral, and English sources are summarized in Chinese.
+> The skill, summaries and reader UI are in Chinese: the project is built for Chinese-language news and Chinese readers. The pipeline itself is language-neutral, and English sources are summarized in Chinese.
 
 ## Why
 
@@ -42,17 +42,19 @@ Five example profiles ship with the repo. On first use, the agent asks what you 
 | `dev-zh` | Open source, languages, cloud and security | 开源中国, InfoQ, 阮一峰's weekly, LWN |
 | `science-zh` | Physics, life sciences, space, medical research | Nature, Science, Quanta, New Scientist (English sources, Chinese summaries) |
 
-None of them fits? Tell the agent what you care about (EVs, the NBA, drug development…) and it rewrites your interests and puts RSS feeds for that field (yours, or ones it finds) in the profile's `feeds.json`. Sites without RSS, such as Weibo, Bilibili and Zhihu, can be turned into feeds with a self-hosted [RSSHub](https://docs.rsshub.app); see [sources.md](news-digest/references/sources.md#用-rsshub-订阅没有-rss-的站点).
+None of them fits? Tell the agent what you care about (EVs, the NBA, drug development…) and it rewrites your interests and puts RSS feeds for that field (yours, or ones it finds) in the profile's `feeds.json`. Sites without RSS, such as Weibo, Bilibili and Zhihu, can be turned into feeds with a self-hosted [RSSHub](https://docs.rsshub.app); see [sources.md](news-pool/references/sources.md#用-rsshub-订阅没有-rss-的站点).
 
 ## What it looks like
 
-<img src="docs/images/digest.png" width="600" alt="Asking news-digest in WorkBuddy for today's AI news; the agent reports the run and the top 5">
+<img src="docs/images/digest.png" width="600" alt="Asking the agent in WorkBuddy for today's AI news; it reports the run and the top 5">
 
 <img src="docs/images/view.png" width="600" alt="The agent opens the reader">
 
 In the reader, stories are grouped by the day they were fetched, most important first. Each one has a Chinese title, a one-line summary, a short synopsis, three key points and the other coverage of the same event. You can search; filter by category, tag or source; and star, hide, annotate or collect stories. There is a dark mode, `j` / `k` move between stories, and `?` lists every shortcut.
 
 ## Install
+
+news-pool is a single skill that both collects and reads the news, so one install is all it takes.
 
 Python 3.9 or newer (the one that ships with macOS works). Nothing else to install.
 
@@ -68,9 +70,9 @@ On Claude Code you can also install it as a plugin (type this inside Claude Code
 /plugin install news-pool --marketplace lxucs/news-pool
 ```
 
-Older Claude Code versions take two steps: `/plugin marketplace add lxucs/news-pool`, then `/plugin install news-pool@news-pool`. Once installed, the two skills show up as `news-pool:news-digest` and `news-pool:news-viewer`; to update, run `claude plugin update news-pool@news-pool` in your terminal.
+Older Claude Code versions take two steps: `/plugin marketplace add lxucs/news-pool`, then `/plugin install news-pool@news-pool`. Once installed, it shows up as `news-pool:news-pool`; to update, run `claude plugin update news-pool@news-pool` in your terminal.
 
-Or by hand: clone the repo and link both skill directories into your harness's skills directory.
+Or by hand: clone the repo and link the skill directory, `news-pool/`, into your harness's skills directory.
 
 ```bash
 git clone https://github.com/lxucs/news-pool.git
@@ -78,26 +80,34 @@ cd news-pool
 
 # Claude Code
 mkdir -p ~/.claude/skills
-ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.claude/skills/
+ln -s "$PWD/news-pool" ~/.claude/skills/
 
 # Codex
 mkdir -p ~/.agents/skills
-ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.agents/skills/
+ln -s "$PWD/news-pool" ~/.agents/skills/
 
 # WorkBuddy
 mkdir -p ~/.workbuddy/skills
-ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.workbuddy/skills/
+ln -s "$PWD/news-pool" ~/.workbuddy/skills/
 ```
 
-For other harnesses, put them in that harness's skills directory; copying works too. With a manual install, `git pull` updates it.
+For other harnesses, put it in that harness's skills directory; copying works too. With a manual install, `git pull` updates it.
 
 Fetching needs network access, so a sandboxed harness (Codex, for example) may ask you to allow it, and sources such as Google News need a network that can reach them. The reader only listens on 127.0.0.1.
 
+### Upgrading from two skills
+
+Earlier versions were two skills, news-digest and news-viewer; they are now one skill, news-pool. Nothing in the pool (`~/.news-pool`) needs to change: your profile, stars and notes are all still there.
+
+- Plugin: run `claude plugin update news-pool@news-pool` in your terminal.
+- `npx skills`: run `npx skills add lxucs/news-pool` again, then delete the old `news-digest` and `news-viewer` from your skills directory, or the agent will keep using them.
+- Manual install: `git pull`, remove the two links to `news-digest` and `news-viewer` from your skills directory, and link `news-pool` with the command above.
+
 ## Use
 
-**Collect**: tell the agent "抓今天的新闻" (fetch today's news), "只跑量子位和 HN" (only 量子位 and HN), "看看最近关于 Sora 的新闻" (recent news about Sora) or "把这几个链接收进来" (add these links). To change what you follow, edit `interests` (what you want and don't want) and `queries` (search terms) in `<pool>/profile/config.json`, or just ask the agent to. Each run picks up where the last one left off for every source, and stories you've seen don't come back; if your harness can schedule tasks, have it run every morning.
+**Collect**: tell the agent "抓今天的新闻" (fetch today's news), "只跑量子位和 HN" (only 量子位 and HN), "看看最近关于 Sora 的新闻" (recent news about Sora) or "把这几个链接收进来" (add these links). To change what you follow, edit `interests` (what you want and don't want) and `queries` (search terms) in `<pool>/profile/config.json`, or just ask the agent to. Each run picks up where the last one left off for every source, and stories you've seen don't come back; if your harness can schedule tasks, have it run every morning. After each run, the agent opens the reader and gives you its URL.
 
-**Read**: say "打开新闻" (open the news), or run `python3 /path/to/news-pool/news-viewer/scripts/nv.py up` yourself, and open the URL it prints. The reader exits after two idle hours; open it again whenever you like.
+**Read**: say "打开新闻" (open the news), or run `python3 /path/to/news-pool/news-pool/scripts/nv.py up` yourself, and open the URL it prints. The reader exits after two idle hours; open it again whenever you like.
 
 Everything lives in the pool (`~/.news-pool` by default; set `NEWS_POOL_DIR` to move it):
 
@@ -108,7 +118,7 @@ Everything lives in the pool (`~/.news-pool` by default; set `NEWS_POOL_DIR` to 
 | `<pool>/runs/` | One directory per run; `manifest.json` lists the stories it added |
 | `<pool>/viewer/` | The reader's data: stars, read state, hidden stories, notes and collections in `viewer.db` |
 
-The full format is in [`news-digest/references/schema.md`](news-digest/references/schema.md) (Chinese).
+The full format is in [`news-pool/references/schema.md`](news-pool/references/schema.md) (Chinese).
 
 ## How it works
 
@@ -120,13 +130,13 @@ flowchart LR
     L --> E["agent<br>write summaries"]
     E --> C["nd.py<br>validate, write"]
     C --> P[("pool")]
-    P --> V["reader"]
+    P --> V["nv.py<br>reader"]
 ```
 
 - **Feeds**: RSS / Atom (each example profile ships its own list) and 华尔街见闻 (Wallstreetcn). **Search**: Google News, using your queries; Hacker News and GDELT are supported but off by default.
 - **No text, no summary.** Feed entries without any text are skipped, and each source contributes only its latest 10 entries (`per_source_limit`, adjustable). Google News results carry only a headline, so they mostly add other coverage of the same event; a story only Google News has, with no text to be found, is left out.
 - `nd.py check` validates every file the agent writes, entry by entry. It names the entry and field that is wrong and what it expected, and the agent fixes it.
-- The pool is append-only and the reader never writes to it (its own data lives in `<pool>/viewer/`). The pool format is the only interface between the two skills.
+- The pool is append-only and the reader never writes to it (its own data lives in `<pool>/viewer/`). The pool format is the only interface between collecting and reading.
 
 ## Respecting sources
 

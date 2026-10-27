@@ -6,26 +6,23 @@
 
 ## 项目是什么
 
-两个 skill，靠同一份磁盘格式衔接：
+一个 skill，`news-pool/`，分收新闻和读新闻两部分，靠同一份磁盘格式衔接：
 
-- **`news-digest/`** 是一个 agent skill（`SKILL.md` 加脚本），由通用的 harness（Codex、WorkBuddy、Claude Code……）运行，大约每天一次。脚本做确定性的工作：抓取、规范化、去重、校验、写入。判断和写作（triage、摘要）由 harness 里的 agent 完成，方式是读写 JSON 文件。**脚本从不调用大模型 API。**
-- **`news-viewer/`** 是阅读器，也是一个 skill。`nv.py up` 在 127.0.0.1 上启动（或复用）一个小服务并打印地址；页面读取新闻池，用户可以搜索和标记条目（星标、已读、隐藏、笔记、收藏夹）。空闲时它自动退出。**它从不 import `newsdigest`**：新闻池的格式是两者之间唯一的接口。
-- **新闻池**（默认 `~/.news-pool`）就是两者之间的约定。条目文件和已 finalize 的运行的 manifest 只写一次；阅读器的索引就是所有已 finalize 的 manifest；用户标记归阅读器所有，存在 `<pool>/viewer/viewer.db`。格式规定在 [`news-digest/references/schema.md`](news-digest/references/schema.md)。
+- **收新闻（`nd.py`，实现在 `newsdigest`）**：skill 由通用的 harness（Codex、WorkBuddy、Claude Code……）运行，大约每天一次。脚本做确定性的工作：抓取、规范化、去重、校验、写入。判断和写作（triage、摘要）由 harness 里的 agent 完成，方式是读写 JSON 文件。**脚本从不调用大模型 API。** 一次运行落盘之后，agent 直接用 `nv.py up` 打开阅读器。
+- **读新闻（`nv.py`，实现在 `newsviewer`）**：阅读器。`nv.py up` 在 127.0.0.1 上启动（或复用）一个小服务并打印地址；页面读取新闻池，用户可以搜索和标记条目（星标、已读、隐藏、笔记、收藏夹）。空闲时它自动退出。**`newsviewer` 从不 import `newsdigest`，反过来也一样**（`tests/test_packaging.py` 检查）：新闻池的格式是两者之间唯一的接口。
+- **新闻池**（默认 `~/.news-pool`）就是两者之间的约定。条目文件和已 finalize 的运行的 manifest 只写一次；阅读器的索引就是所有已 finalize 的 manifest；用户标记归阅读器所有，存在 `<pool>/viewer/viewer.db`。格式规定在 [`news-pool/references/schema.md`](news-pool/references/schema.md)。
 
 ## 目录
 
 ```
-news-digest/            skill 本体；以符号链接或复制的方式放进 harness 的 skills 目录
-  SKILL.md              给 agent 的流程说明
-  scripts/nd.py         入口；实现在 scripts/newsdigest/
-  references/           默认值、订阅源、类别、标签、来源分级，以及给 agent 的规则
-  examples/             示例 profile（ai-zh、finance-zh、games-zh、dev-zh、science-zh）和候选样例
-news-viewer/            阅读器 skill；安装方式相同
-  SKILL.md              给 agent 的说明
-  scripts/nv.py         入口；实现在 scripts/newsviewer/
-  scripts/newsviewer/static/   页面：HTML、CSS、JS 模块、内置的 Vue（没有构建步骤）
-  references/           defaults.json
-tests/                  离线测试；tests/fixtures/ 存放从线上接口抓取的真实响应
+news-pool/              skill 本体；以符号链接或复制的方式放进 harness 的 skills 目录
+  SKILL.md              给 agent 的说明：收新闻的流程和阅读器
+  scripts/nd.py         收新闻的入口；实现在 scripts/newsdigest/
+  scripts/nv.py         阅读器的入口；实现在 scripts/newsviewer/
+  references/           默认值、订阅源、类别、标签、来源分级、阅读器的默认设置，以及给 agent 的规则
+  assets/profiles/      示例 profile（ai-zh、finance-zh、games-zh、dev-zh、science-zh）
+  assets/viewer/        页面：HTML、CSS、JS 模块、内置的 Vue（没有构建步骤）
+tests/                  离线测试；fixtures/ 存放从线上接口抓取的真实响应，raw_sample.jsonl 是候选样例
 docs/                   贡献指南；images/ 放 README 用的截图
 .claude-plugin/         marketplace.json：Claude Code 插件市场的清单，npx skills 也读它
 .github/workflows/      CI：ruff、pyright、pytest
@@ -35,13 +32,13 @@ docs/                   贡献指南；images/ 放 README 用的截图
 
 两套环境，有意为之：
 
-- **两个 skill 都跑在 harness 自带的 Python 上：Python ≥ 3.9，只用标准库。** `news-digest/` 或 `news-viewer/` 下出现任何第三方 import 都是 bug——skill 复制到一台什么都没装的机器上也必须能用。以 macOS 自带的 Python（3.9）为下限来检查。唯一的第三方文件是 `news-viewer/scripts/newsviewer/static/vendor/` 里内置的 Vue 浏览器构建（固定版本并校验 sha256，见该目录的 README）：它由浏览器加载，不需要安装。
+- **skill 跑在 harness 自带的 Python 上：Python ≥ 3.9，只用标准库。** `news-pool/` 下出现任何第三方 import 都是 bug——skill 复制到一台什么都没装的机器上也必须能用。以 macOS 自带的 Python（3.9）为下限来检查。唯一的第三方文件是 `news-pool/assets/viewer/vendor/` 里内置的 Vue 浏览器构建（固定版本并校验 sha256，见该目录的 README）：它由浏览器加载，不需要安装。
 - **开发用 uv**，使用仓库根目录下项目本地的 `.venv`：
 
 ```bash
 uv sync                 # 创建 / 更新 .venv（pytest、ruff、pyright）
 uv run pytest           # 跑测试
-uv run python news-digest/scripts/nd.py --help
+uv run python news-pool/scripts/nd.py --help
 ```
 
 `uv run` 会自动选用 `.venv`。不要创建别的环境，也不要往系统自带的解释器里 `pip install`。`pyproject.toml` 只放开发工具；项目没有运行时依赖。
@@ -84,6 +81,6 @@ uv run pyright
 uv run pytest
 ```
 
-任一 skill 下的代码有改动时，还要在 Python 3.9 上跑一遍测试（见 contributing.md 的「Python 3.9」一节）。
+skill 下的代码有改动时，还要在 Python 3.9 上跑一遍测试（见 contributing.md 的「Python 3.9」一节）。
 
 要真的运行这些命令并读输出——不要因为代码写完了就推断它能通过。有失败就如实说，并附上输出。如果跳过了一部分范围，要明确说出来。

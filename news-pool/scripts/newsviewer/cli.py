@@ -29,7 +29,7 @@ class NvParser(argparse.ArgumentParser):
 
 
 def build_parser() -> NvParser:
-    parser = NvParser(prog="nv.py", description="news-viewer: read the news pool in a browser")
+    parser = NvParser(prog="nv.py", description="nv.py: read the news pool in a browser")
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command", parser_class=NvParser)
     sub.required = True

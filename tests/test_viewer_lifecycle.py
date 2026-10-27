@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from newsviewer import lifecycle
+from newsviewer import __version__, lifecycle
 from newsviewer.api import Request
 from newsviewer.config import load_settings
 from newsviewer.errors import StartFailed
@@ -23,14 +23,16 @@ from newsviewer.lifecycle import (
 from newsviewer.server import Activity
 
 
-def info(pool: Path, instance: str = "one", port: int = 8765) -> ServerInfo:
+def info(
+    pool: Path, instance: str = "one", port: int = 8765, version: str = __version__
+) -> ServerInfo:
     return ServerInfo(
         pid=111,
         port=port,
         url=f"http://127.0.0.1:{port}/",
         pool=str(pool),
         instance=instance,
-        version="1.0.0",
+        version=version,
         started_at="2026-10-22T10:00:00+08:00",
     )
 
@@ -114,6 +116,41 @@ def test_up_starts_a_server_when_the_recorded_one_is_gone(tmp_path: Path) -> Non
         clock=t.clock,
     )
     assert result == (fresh, False)
+
+
+def test_up_replaces_a_server_from_another_version(tmp_path: Path) -> None:
+    # 例如升级前从旧目录启动的服务：它的页面文件可能已经不在了
+    write_server_info(tmp_path, info(tmp_path, "old", version="1.0.0"))
+    fresh = info(tmp_path, "fresh")
+    live: list[str | None] = ["old"]
+    posted: list[int] = []
+
+    def probe(port: int) -> dict[str, Any] | None:
+        instance = live[0]
+        return None if instance is None else answering(tmp_path, instance)(port)
+
+    def post(port: int) -> None:
+        posted.append(port)
+        live[0] = None  # 旧服务收到请求后退出
+
+    def spawn(pool: Path, port: int) -> FakeChild:
+        write_server_info(pool, fresh)
+        live[0] = "fresh"
+        return FakeChild()
+
+    t = FakeTime()
+    result = up(
+        tmp_path,
+        8765,
+        10,
+        spawn=spawn,
+        probe=probe,
+        post=post,
+        sleep=t.sleep,
+        clock=t.clock,
+    )
+    assert result == (fresh, False)
+    assert posted == [8765]
 
 
 def test_up_reports_a_child_that_exits_while_starting(tmp_path: Path) -> None:

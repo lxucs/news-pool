@@ -2,7 +2,7 @@
 
 它以 schema `userdb` 的名义 attach 到索引的内存连接上（index.py），所以一条查询就能把条目和
 用户标记 join 起来。键是条目 id，永久稳定（schema.md）。用默认的 rollback journal 而不是 WAL：
-新闻池可能放在同步文件夹里，WAL 的附属文件在那里会出问题；而且写入方只有一个。news-digest
+新闻池可能放在同步文件夹里，WAL 的附属文件在那里会出问题；而且写入方只有一个。nd.py
 从不读写这个数据库。"""
 
 from __future__ import annotations

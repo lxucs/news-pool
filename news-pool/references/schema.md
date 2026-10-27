@@ -1,6 +1,6 @@
 # 新闻池格式（schema_version 2.1）
 
-新闻池是 skill 与阅读器之间的约定。位置：`--pool` > 环境变量 `NEWS_POOL_DIR` > `~/.news-pool`。
+新闻池是收新闻（`nd.py`）与阅读器（`nv.py`）之间的约定。位置：`--pool` > 环境变量 `NEWS_POOL_DIR` > `~/.news-pool`。
 
 ## 目录
 
@@ -18,15 +18,15 @@
     seen.txt                   本次运行标记为已处理的 id
     errors.json                最近一次校验失败的完整错误列表（通过后删除）
     nd-error.log               脚本内部错误的 traceback（如果出过错）
-  viewer/                      阅读器（news-viewer）自己的数据：viewer.db（星标、已读、隐藏、笔记、收藏夹）等；skill 不读写
+  viewer/                      阅读器（nv.py）自己的数据：viewer.db（星标、已读、隐藏、笔记、收藏夹）等；nd.py 不读写
 ```
 
 ## 约定
 
 - **只增不改**：条目文件和已 finalize 的运行只写一次，全部原子写入。
 - **阅读器的索引 = 所有 `status: finalized` 的运行的 `manifest.json`**。没有被任何 finalized manifest 引用的条目文件是孤儿（来自中途失败的运行），忽略即可。
-- 阅读器从 `run.json` 只读 `status` 和 `created_at`（= 条目的 `collected_at`）；`run.json` 的其他字段是 skill 内部的，随时可能变。
-- **`id`**：规范化 URL 的 sha1 前 12 位十六进制，永久稳定。阅读器的已读 / 收藏等标记以 id 为键，存在 `<pool>/viewer/` 里；skill 从不读写它。
+- 阅读器从 `run.json` 只读 `status` 和 `created_at`（= 条目的 `collected_at`）；`run.json` 的其他字段是 nd.py 内部的，随时可能变。
+- **`id`**：规范化 URL 的 sha1 前 12 位十六进制，永久稳定。阅读器的已读 / 收藏等标记以 id 为键，存在 `<pool>/viewer/` 里；nd.py 从不读写它。
 - **条目文件命名**：`items/<抓取日>/<发布日>.<slug>.<id>.json`。抓取日是 `collected_at` 的 `%y%m%d`，发布日是 `published_at` 的 `%y%m%d`；slug 由 `title_zh` 生成：小写，保留字母数字与 CJK 字符，其余连续字符折叠成一个 `-`，最长 `item_slug_max_chars`（默认 40）字，全空则用 `untitled`。id 保证文件名唯一；文件名是给人看的，阅读器用 manifest 的 `file` 字段定位条目文件。
 - **2.0 → 2.1**：新增条目字段 `synopsis`、条目文件命名规则、manifest 条目的 `file` 字段。2.0 写出的条目文件（`items/<id>.json`）仍然有效：旧运行的 manifest 没有 `file`，阅读器回退到按 id 找文件。
 - **运行类型**：`daily`（按 profile 的 interests 筛选，推进各源的时间窗）与 `adhoc`（带 `--query` / `--focus`；不推进时间窗）。

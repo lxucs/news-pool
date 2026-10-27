@@ -12,7 +12,7 @@
 
 <img src="docs/images/browser.png" width="600" alt="阅读器：左边是收进来的新闻，右边是打开的一条">
 
-## 为什么用这个Skills
+## 为什么用这个 skill
 
 很多 AI 新闻摘要工具需要一个大模型 API key，按 token 计费。可很多人手里已经有 Codex、Claude Code 这类 agent 的订阅（ChatGPT、Claude 的套餐等），可以把订阅给利用起来，不额外付费。
 
@@ -40,17 +40,19 @@
 | `dev-zh` | 开源、编程语言、云与安全 | 开源中国、InfoQ、阮一峰的周刊、LWN |
 | `science-zh` | 物理、生命科学、天文航天、医学研究 | Nature、Science、Quanta、New Scientist（英文源，摘要写成中文） |
 
-都不合适也没关系。告诉 agent 你关心什么（新能源车、NBA、医药研发……），它会改好兴趣描述，并把这个领域的 RSS 订阅源（你给的，或者它帮你找的）写进 profile 的 `feeds.json`。微博、B 站、知乎这类没有 RSS 的站点，可以自建 [RSSHub](https://docs.rsshub.app) 转成 RSS，做法见 [sources.md](news-digest/references/sources.md#用-rsshub-订阅没有-rss-的站点)。
+都不合适也没关系。告诉 agent 你关心什么（新能源车、NBA、医药研发……），它会改好兴趣描述，并把这个领域的 RSS 订阅源（你给的，或者它帮你找的）写进 profile 的 `feeds.json`。微博、B 站、知乎这类没有 RSS 的站点，可以自建 [RSSHub](https://docs.rsshub.app) 转成 RSS，做法见 [sources.md](news-pool/references/sources.md#用-rsshub-订阅没有-rss-的站点)。
 
 ## 用起来是什么样
 
-<img src="docs/images/digest.png" width="600" alt="在 WorkBuddy 里让 news-digest 找今天的 AI 新闻，agent 汇报运行结果和 Top 5">
+<img src="docs/images/digest.png" width="600" alt="在 WorkBuddy 里让 agent 找今天的 AI 新闻，它汇报运行结果和 Top 5">
 
 <img src="docs/images/view.png" width="600" alt="agent 打开阅读器">
 
 阅读器里，新闻按抓取日期分组，最重要的排在前面，每条都有中文标题、一句话摘要、展开的一段、三条要点和同一事件的其他报道。你可以搜索，按类别、标签、来源筛选，也可以星标、隐藏不感兴趣的、写笔记、整理收藏夹；有深色模式，用 `j` / `k` 翻条目，按 `?` 看全部快捷键。
 
 ## 安装
+
+news-pool 是一个 skill，收新闻和读新闻都在里面，装一次就行。
 
 需要 Python 3.9 或更新的版本（macOS 自带的就行），不用装任何依赖。
 
@@ -66,9 +68,9 @@ npx skills add lxucs/news-pool
 /plugin install news-pool --marketplace lxucs/news-pool
 ```
 
-较早的 Claude Code 分两步：先 `/plugin marketplace add lxucs/news-pool`，再 `/plugin install news-pool@news-pool`。装好后两个 skill 显示为 `news-pool:news-digest` 和 `news-pool:news-viewer`；更新时在终端里运行 `claude plugin update news-pool@news-pool`。
+较早的 Claude Code 分两步：先 `/plugin marketplace add lxucs/news-pool`，再 `/plugin install news-pool@news-pool`。装好后显示为 `news-pool:news-pool`；更新时在终端里运行 `claude plugin update news-pool@news-pool`。
 
-或者手动安装：克隆仓库，把两个 skill 目录链接进 harness 的 skills 目录。
+或者手动安装：克隆仓库，把 skill 目录 `news-pool/` 链接进 harness 的 skills 目录。
 
 ```bash
 git clone https://github.com/lxucs/news-pool.git
@@ -76,26 +78,34 @@ cd news-pool
 
 # Claude Code
 mkdir -p ~/.claude/skills
-ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.claude/skills/
+ln -s "$PWD/news-pool" ~/.claude/skills/
 
 # Codex
 mkdir -p ~/.agents/skills
-ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.agents/skills/
+ln -s "$PWD/news-pool" ~/.agents/skills/
 
 # WorkBuddy
 mkdir -p ~/.workbuddy/skills
-ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.workbuddy/skills/
+ln -s "$PWD/news-pool" ~/.workbuddy/skills/
 ```
 
 其他 harness 放进各自的 skills 目录即可，复制也行。手动安装的，以后 `git pull` 就是更新。
 
 抓取需要联网，沙箱型的 harness（例如 Codex）可能会请你放行；Google News 等来源要有相应的网络环境。阅读器只监听 127.0.0.1。
 
+### 从两个 skill 升级
+
+以前的版本是 news-digest 和 news-viewer 两个 skill，现在合成了一个 news-pool。新闻池（`~/.news-pool`）里的东西都不用动：profile、星标、笔记都还在。
+
+- 插件：在终端里运行 `claude plugin update news-pool@news-pool`。
+- `npx skills`：重新运行 `npx skills add lxucs/news-pool`，再从 skills 目录里删掉旧的 `news-digest` 和 `news-viewer`，否则 agent 还会用到旧的那两个。
+- 手动安装：`git pull`，删掉 skills 目录里指向 `news-digest`、`news-viewer` 的两个链接，再按上面的命令链接 `news-pool`。
+
 ## 使用
 
-**收新闻**：对 agent 说"抓今天的新闻""只跑量子位和 HN""看看最近关于 Sora 的新闻"或"把这几个链接收进来"。想调整关注点，就改 `<pool>/profile/config.json` 里的 `interests`（要什么、不要什么）和 `queries`（检索词），或者直接让 agent 改。每次运行从各来源上次抓到的地方接着抓，看过的不会再出现；harness 支持定时任务的话，可以让它每天早上跑一次。
+**收新闻**：对 agent 说"抓今天的新闻""只跑量子位和 HN""看看最近关于 Sora 的新闻"或"把这几个链接收进来"。想调整关注点，就改 `<pool>/profile/config.json` 里的 `interests`（要什么、不要什么）和 `queries`（检索词），或者直接让 agent 改。每次运行从各来源上次抓到的地方接着抓，看过的不会再出现；harness 支持定时任务的话，可以让它每天早上跑一次。每次收完，agent 会直接打开阅读器，把地址给你。
 
-**读新闻**：说"打开新闻"（或者自己运行 `python3 /path/to/news-pool/news-viewer/scripts/nv.py up`），打开它给的地址。阅读器空闲两小时后自动退出，下次再打开即可。
+**读新闻**：说"打开新闻"（或者自己运行 `python3 /path/to/news-pool/news-pool/scripts/nv.py up`），打开它给的地址。阅读器空闲两小时后自动退出，下次再打开即可。
 
 数据都在新闻池里（默认 `~/.news-pool`，设置环境变量 `NEWS_POOL_DIR` 可以换位置）：
 
@@ -106,7 +116,7 @@ ln -s "$PWD/news-digest" "$PWD/news-viewer" ~/.workbuddy/skills/
 | `<pool>/runs/` | 每次运行的目录；`manifest.json` 是这次运行收进来的条目列表 |
 | `<pool>/viewer/` | 阅读器的数据：星标、已读、隐藏、笔记和收藏夹都在 `viewer.db` 里 |
 
-格式的完整说明见 [`news-digest/references/schema.md`](news-digest/references/schema.md)。
+格式的完整说明见 [`news-pool/references/schema.md`](news-pool/references/schema.md)。
 
 ## 工作方式
 
@@ -118,13 +128,13 @@ flowchart LR
     L --> E["agent<br>写中文摘要"]
     E --> C["nd.py<br>校验、落盘"]
     C --> P[("新闻池")]
-    P --> V["阅读器"]
+    P --> V["nv.py<br>阅读器"]
 ```
 
 - **订阅源**：RSS / Atom（每个示例 profile 自带一份列表）和华尔街见闻；**检索源**：Google News，按你的检索词搜；Hacker News 和 GDELT 也支持，默认不启用。
 - **没有正文的新闻不写摘要。** 订阅源里没有正文的条目直接跳过，每个源只取最新的 10 条（`per_source_limit`，可调）。Google News 的条目只有标题，主要用来补充同一事件的其他报道；只有它报道、又抓不到正文的新闻不收录。
 - agent 写的每个文件都由 `nd.py check` 逐条校验：哪一条、哪个字段不对，期望什么，都会指出来，agent 照着改。
-- 新闻池只增不改，阅读器只读不写（它自己的数据单独放在 `<pool>/viewer/`）。两个 skill 之间唯一的接口就是新闻池的格式。
+- 新闻池只增不改，阅读器只读不写（它自己的数据单独放在 `<pool>/viewer/`）。收新闻和读新闻两部分之间唯一的接口就是新闻池的格式。
 
 ## 尊重内容来源
 

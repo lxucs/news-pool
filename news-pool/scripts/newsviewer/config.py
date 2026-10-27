@@ -1,4 +1,4 @@
-"""设置：references/defaults.json 与可选的 <pool>/viewer/config.json 深度合并。"""
+"""设置：references/viewer-defaults.json 与可选的 <pool>/viewer/config.json 深度合并。"""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ from typing import Any
 from .errors import UsageError
 from .paths import REFERENCES_DIR, VIEWER_DIR
 
-DEFAULTS_FILE = "defaults.json"
+DEFAULTS_FILE = "viewer-defaults.json"
 CONFIG_FILE = "config.json"
 NUMERIC_KEYS = ("port", "idle_minutes", "heartbeat_s", "start_timeout_s", "refresh_s", "page_size")
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """嵌套对象逐层合并，其他值直接替换；以 `_` 开头的键是注释（与 news-digest 相同）。"""
+    """嵌套对象逐层合并，其他值直接替换；以 `_` 开头的键是注释（与 nd.py 的 profile 相同）。"""
     out = {k: v for k, v in base.items() if not k.startswith("_")}
     for key, value in override.items():
         if key.startswith("_"):

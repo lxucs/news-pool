@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""news-viewer 命令行。工作流程见 ../SKILL.md；命令见 `nv.py --help`。"""
+"""阅读器的命令行。用法见 ../SKILL.md 的「阅读器」；命令见 `nv.py --help`。"""
 
 import os
 import sys

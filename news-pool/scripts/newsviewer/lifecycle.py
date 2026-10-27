@@ -1,4 +1,4 @@
-"""服务的生命周期：serve（前台）、up（在后台启动，或复用已有的服务）、down、空闲看门狗线程。
+"""服务的生命周期：serve（前台）、up（在后台启动，或复用已有的同版本服务）、down、空闲看门狗线程。
 
 <pool>/viewer/server.json 记录正在运行的服务。健康检查回复的 `instance` 与记录相同，就证明服务
 是我们的、而且还活着。这里从不按 pid 杀进程：被复用的 pid 可能属于任何进程。"""
@@ -172,13 +172,19 @@ def up(
     *,
     spawn: Callable[[Path, int], Child] = spawn_detached,
     probe: Callable[[int], dict[str, Any] | None] = probe_health,
+    post: Callable[[int], None] = post_shutdown,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
 ) -> tuple[ServerInfo, bool]:
-    """这个新闻池正在运行的服务，必要时启动一个：返回 (info, reused)。"""
+    """这个新闻池正在运行的服务，必要时启动一个：返回 (info, reused)。
+
+    正在运行的是另一个版本（例如升级前从旧目录启动的，那里的页面文件可能已经不在了）时，
+    先让它停下，再启动这个版本的。"""
     current = running(pool, probe)
-    if current is not None:
+    if current is not None and current.version == __version__:
         return current, True
+    if current is not None:
+        _stop(current, probe, post, sleep, clock)
     stale = read_server_info(pool)
     child = spawn(pool, port)
     deadline = clock() + timeout_s
@@ -214,11 +220,22 @@ def down(
     if not _is_alive(info, pool, probe):
         remove_server_info(pool, info.instance)
         return False
+    _stop(info, probe, post, sleep, clock)
+    return True
+
+
+def _stop(
+    info: ServerInfo,
+    probe: Callable[[int], dict[str, Any] | None],
+    post: Callable[[int], None],
+    sleep: Callable[[float], None],
+    clock: Callable[[], float],
+) -> None:
+    """请服务停止，最多等 DOWN_WAIT_S 秒，直到它不再应答。"""
     post(info.port)
     deadline = clock() + DOWN_WAIT_S
     while clock() < deadline and probe(info.port) is not None:
         sleep(POLL_S)
-    return True
 
 
 def watch_idle(
