@@ -1,4 +1,4 @@
-# news-pool
+# news-pool 个性化新闻池
 
 **让你已经在用的 AI agent（Codex、Claude Code、WorkBuddy……）每天替你筛选新闻。** 它从订阅源和新闻检索里抓取新闻，筛掉无关的，合并重复的，按重要性打分，写好中文摘要，存成本地文件，你在浏览器里阅读。整个流程都在 agent 里完成，用的是你已经订阅的套餐额度：**不需要 API key，不按量付费。**
 
@@ -54,19 +54,13 @@ news-pool 是一个 skill，收新闻和读新闻都在里面，装一次就行�
 
 需要 Python 3.9 或更新的版本（macOS 自带的就行），不用装任何依赖。
 
-用 [skills](https://github.com/vercel-labs/skills) 安装（需要 Node.js）：
+在 WorkBuddy 中可以搜索 `个性化新闻池` 直接安装（已发布于 [SkillHub](https://skillhub.cn/skills/user_75ecdac5/news-pool)）。
 
-```bash
-npx skills add lxucs/news-pool
-```
-
-用 Claude Code 的，也可以作为插件安装（在 Claude Code 里输入）：
+在 Claude Code 中可以作为插件安装（在 Claude Code 里输入）：
 
 ```text
 /plugin install news-pool --marketplace lxucs/news-pool
 ```
-
-较早的 Claude Code 分两步：先 `/plugin marketplace add lxucs/news-pool`，再 `/plugin install news-pool@news-pool`。装好后显示为 `news-pool:news-pool`；更新时在终端里运行 `claude plugin update news-pool@news-pool`。
 
 或者手动安装：克隆仓库，把 skill 目录 `news-pool/` 链接进 harness 的 skills 目录。
 
@@ -93,7 +87,7 @@ ln -s "$PWD/news-pool" ~/.workbuddy/skills/
 
 ## 使用
 
-**收新闻**：对 agent 说"抓今天的新闻""只跑量子位和 HN""看看最近关于 Sora 的新闻"或"把这几个链接收进来"。想调整关注点，就改 `<pool>/profile/config.json` 里的 `interests`（要什么、不要什么）和 `queries`（检索词），或者直接让 agent 改。每次运行从各来源上次抓到的地方接着抓，看过的不会再出现；harness 支持定时任务的话，可以让它每天早上跑一次。每次收完，agent 会直接打开阅读器，把地址给你。
+**收新闻**：对 agent 说"抓今天的新闻""只跑量子位和 HN""看看最近关于 大模型融资 的新闻"或"把这几个链接收进来"。想调整关注点，就改 `<pool>/profile/config.json` 里的 `interests`（要什么、不要什么）和 `queries`（检索词），或者直接让 agent 改。每次运行从各来源上次抓到的地方接着抓，看过的不会再出现；harness 支持定时任务的话，可以让它每天早上跑一次。每次收完，agent 会直接打开阅读器，把地址给你。
 
 **读新闻**：说"打开新闻"（或者自己运行 `python3 /path/to/news-pool/news-pool/scripts/nv.py up`），打开它给的地址。阅读器空闲两小时后自动退出，下次再打开即可。
 
