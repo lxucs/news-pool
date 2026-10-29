@@ -62,6 +62,15 @@ news-pool 是一个 skill，收新闻和读新闻都在里面，装一次就行�
 /plugin install news-pool --marketplace lxucs/news-pool
 ```
 
+在 Codex 中也可以作为插件安装（在终端里运行）：
+
+```bash
+codex plugin marketplace add lxucs/news-pool
+codex plugin add news-pool@news-pool
+```
+
+以后更新用 `codex plugin marketplace upgrade`。
+
 或者手动安装：克隆仓库，把 skill 目录 `news-pool/` 链接进 harness 的 skills 目录。
 
 ```bash

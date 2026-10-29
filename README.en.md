@@ -70,6 +70,15 @@ On Claude Code you can also install it as a plugin (type this inside Claude Code
 
 Older Claude Code versions take two steps: `/plugin marketplace add lxucs/news-pool`, then `/plugin install news-pool@news-pool`. Once installed, it shows up as `news-pool:news-pool`; to update, run `claude plugin update news-pool@news-pool` in your terminal.
 
+On Codex you can install it as a plugin too (run this in your terminal):
+
+```bash
+codex plugin marketplace add lxucs/news-pool
+codex plugin add news-pool@news-pool
+```
+
+To update, run `codex plugin marketplace upgrade`.
+
 Or by hand: clone the repo and link the skill directory, `news-pool/`, into your harness's skills directory.
 
 ```bash
